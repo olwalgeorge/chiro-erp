@@ -1,0 +1,20 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: hr-service
+  namespace: chiro-erp
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: hr-service
+  template:
+    metadata:
+      labels:
+        app: hr-service
+    spec:
+      containers:
+      - name: hr-service
+        image: chiro-erp/hr-service:latest
+        ports:
+        - containerPort: 8080
