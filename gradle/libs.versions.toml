@@ -29,7 +29,6 @@ quarkus-arc = { module = "io.quarkus:quarkus-arc" }
 quarkus-kotlin = { module = "io.quarkus:quarkus-kotlin" }
 quarkus-rest = { module = "io.quarkus:quarkus-rest" }
 quarkus-rest-kotlin-serialization = { module = "io.quarkus:quarkus-rest-kotlin-serialization" }
-quarkus-hibernate-orm-panache-kotlin = { module = "io.quarkus:quarkus-hibernate-orm-panache-kotlin" }
 quarkus-hibernate-reactive-panache-kotlin = { module = "io.quarkus:quarkus-hibernate-reactive-panache-kotlin" }
 quarkus-jdbc-postgresql = { module = "io.quarkus:quarkus-jdbc-postgresql" }
 quarkus-flyway = { module = "io.quarkus:quarkus-flyway" }

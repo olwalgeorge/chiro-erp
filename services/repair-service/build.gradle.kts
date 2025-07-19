@@ -1,16 +1,30 @@
 plugins {
-    id("service-conventions")
-    id("quality-conventions")
-    id("testing-conventions")
+    kotlin("jvm")
+    kotlin("plugin.allopen")
+    id("io.quarkus")
 }
 
-description = "Repair Service - Equipment and maintenance tracking"
-
 dependencies {
-    // Repair-specific additional dependencies
-    implementation("io.quarkus:quarkus-messaging-kafka")
+    implementation(enforcedPlatform(libs.quarkus.bom))
+    implementation("io.quarkus:quarkus-kotlin")
+    implementation("io.quarkus:quarkus-arc")
+    implementation("io.quarkus:quarkus-resteasy-reactive")
+    implementation("io.quarkus:quarkus-resteasy-reactive-jackson")
+    implementation("io.quarkus:quarkus-hibernate-orm-panache-kotlin")
+    implementation("io.quarkus:quarkus-jdbc-postgresql")
+    implementation("io.quarkus:quarkus-smallrye-reactive-messaging-kafka")
     implementation("io.quarkus:quarkus-smallrye-graphql")
+    implementation("io.quarkus:quarkus-security-jpa")
+    implementation("io.quarkus:quarkus-flyway")
     
-    // Standard dependencies (REST Kotlin Serialization, Hibernate ORM Panache Kotlin, etc.)
-    // are inherited from service-conventions plugin
+    testImplementation("io.quarkus:quarkus-junit5")
+    testImplementation("io.rest-assured:rest-assured")
+    testImplementation("org.mockito:mockito-core")
+    testImplementation("org.mockito.kotlin:mockito-kotlin")
+}
+
+allOpen {
+    annotation("jakarta.ws.rs.Path")
+    annotation("jakarta.enterprise.context.ApplicationScoped")
+    annotation("io.quarkus.test.junit.QuarkusTest")
 }
