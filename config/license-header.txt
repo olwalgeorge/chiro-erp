@@ -1,0 +1,7 @@
+/*
+ * Copyright (c) $YEAR Chiro ERP System
+ * All rights reserved.
+ *
+ * This software is proprietary and confidential.
+ * Unauthorized copying or distribution is prohibited.
+ */

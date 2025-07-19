@@ -1,0 +1,90 @@
+[versions]
+kotlin = "2.1.21"
+quarkus = "3.24.4"
+# Dependencies NOT managed by Quarkus BOM (explicit versions needed)
+mockk = "1.13.8"
+avro = "1.11.3"
+kotlinx-coroutines = "1.7.3"
+confluent = "7.5.1"
+# Code quality plugins
+detekt = "1.23.4"
+spotless = "6.25.0"
+jacoco = "0.8.11"
+sonarqube = "4.4.1.3373"
+test-retry = "1.5.8"
+versions-plugin = "0.50.0"
+node-gradle = "7.0.1"
+
+[libraries]
+# Kotlin
+kotlin-stdlib = { module = "org.jetbrains.kotlin:kotlin-stdlib-jdk8", version.ref = "kotlin" }
+kotlin-reflect = { module = "org.jetbrains.kotlin:kotlin-reflect", version.ref = "kotlin" }
+kotlinx-coroutines = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version = "1.7.3" }
+
+# Quarkus BOM
+quarkus-bom = { module = "io.quarkus.platform:quarkus-bom", version.ref = "quarkus" }
+
+# Quarkus Core
+quarkus-arc = { module = "io.quarkus:quarkus-arc" }
+quarkus-kotlin = { module = "io.quarkus:quarkus-kotlin" }
+quarkus-rest = { module = "io.quarkus:quarkus-rest" }
+quarkus-rest-kotlin-serialization = { module = "io.quarkus:quarkus-rest-kotlin-serialization" }
+quarkus-hibernate-orm-panache-kotlin = { module = "io.quarkus:quarkus-hibernate-orm-panache-kotlin" }
+quarkus-hibernate-reactive-panache-kotlin = { module = "io.quarkus:quarkus-hibernate-reactive-panache-kotlin" }
+quarkus-jdbc-postgresql = { module = "io.quarkus:quarkus-jdbc-postgresql" }
+quarkus-flyway = { module = "io.quarkus:quarkus-flyway" }
+quarkus-smallrye-jwt = { module = "io.quarkus:quarkus-smallrye-jwt" }
+quarkus-smallrye-jwt-build = { module = "io.quarkus:quarkus-smallrye-jwt-build" }
+quarkus-container-image-docker = { module = "io.quarkus:quarkus-container-image-docker" }
+quarkus-smallrye-health = { module = "io.quarkus:quarkus-smallrye-health" }
+quarkus-micrometer-registry-prometheus = { module = "io.quarkus:quarkus-micrometer-registry-prometheus" }
+quarkus-opentelemetry = { module = "io.quarkus:quarkus-opentelemetry" }
+quarkus-kafka = { module = "io.quarkus:quarkus-messaging-kafka" }
+
+# Database
+postgresql-driver = { module = "org.postgresql:postgresql" }
+flyway-core = { module = "org.flywaydb:flyway-core" }
+
+# Kafka & Messaging
+kafka-clients = { module = "org.apache.kafka:kafka-clients" }
+kafka-streams = { module = "org.apache.kafka:kafka-streams" }
+avro = { module = "org.apache.avro:avro", version.ref = "avro" }
+avro-serializer = { module = "io.confluent:kafka-avro-serializer", version = "7.5.1" }
+
+# Testing
+junit-jupiter = { module = "org.junit.jupiter:junit-jupiter" }
+junit-jupiter-engine = { module = "org.junit.jupiter:junit-jupiter-engine" }
+quarkus-junit5 = { module = "io.quarkus:quarkus-junit5" }
+quarkus-test-h2 = { module = "io.quarkus:quarkus-test-h2" }
+rest-assured = { module = "io.rest-assured:rest-assured" }
+rest-assured-kotlin = { module = "io.rest-assured:kotlin-extensions" }
+mockk = { module = "io.mockk:mockk", version.ref = "mockk" }
+testcontainers-junit5 = { module = "org.testcontainers:junit-jupiter" }
+testcontainers-postgresql = { module = "org.testcontainers:postgresql" }
+testcontainers-kafka = { module = "org.testcontainers:kafka" }
+
+# Logging
+slf4j-api = { module = "org.slf4j:slf4j-api" }
+
+[bundles]
+kotlin = ["kotlin-stdlib", "kotlin-reflect", "kotlinx-coroutines"]
+quarkus-core = ["quarkus-arc", "quarkus-kotlin", "quarkus-rest", "quarkus-rest-kotlin-serialization"]
+quarkus-data = ["quarkus-hibernate-reactive-panache-kotlin", "quarkus-jdbc-postgresql", "quarkus-flyway"]
+quarkus-security = ["quarkus-smallrye-jwt", "quarkus-smallrye-jwt-build"]
+quarkus-observability = ["quarkus-smallrye-health", "quarkus-micrometer-registry-prometheus", "quarkus-opentelemetry"]
+testing-core = ["junit-jupiter", "quarkus-junit5", "rest-assured", "mockk"]
+testing-integration = ["testcontainers-junit5", "testcontainers-postgresql", "testcontainers-kafka"]
+kafka = ["kafka-clients", "kafka-streams", "avro", "quarkus-kafka"]
+
+[plugins]
+kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
+kotlin-allopen = { id = "org.jetbrains.kotlin.plugin.allopen", version.ref = "kotlin" }
+kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
+quarkus = { id = "io.quarkus", version.ref = "quarkus" }
+detekt = { id = "io.gitlab.arturbosch.detekt", version.ref = "detekt" }
+spotless = { id = "com.diffplug.spotless", version.ref = "spotless" }
+jacoco = { id = "jacoco" }
+sonarqube = { id = "org.sonarqube", version.ref = "sonarqube" }
+test-retry = { id = "org.gradle.test-retry", version.ref = "test-retry" }
+versions = { id = "com.github.ben-manes.versions", version.ref = "versions-plugin" }
+node = { id = "com.github.node-gradle.node", version.ref = "node-gradle" }
