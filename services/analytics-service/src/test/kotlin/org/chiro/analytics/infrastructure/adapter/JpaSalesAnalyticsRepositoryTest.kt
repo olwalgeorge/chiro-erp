@@ -1,0 +1,1 @@
+// JpaSalesAnalyticsRepositoryTest.kt
