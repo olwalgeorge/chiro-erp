@@ -1,0 +1,208 @@
+# Multi-target Dockerfile with different security levels
+# Usage:
+#   docker build --target runtime-distroless -t myapp:distroless .
+#   docker build --target runtime-alpine -t myapp:alpine .
+#   docker build --target runtime-native -t myapp:native .
+
+ARG JAVA_VERSION=21
+ARG ALPINE_VERSION=3.19
+
+# =============================================================================
+# Build Stage - Secure build environment
+# =============================================================================
+FROM eclipse-temurin:${JAVA_VERSION}-jdk-alpine as builder
+
+# Set build arguments
+ARG BUILD_ARGS=""
+ARG GRADLE_OPTS="-Dorg.gradle.daemon=false -Dorg.gradle.caching=true"
+
+WORKDIR /build
+
+# Security: Install only required tools with version pinning
+RUN apk update && \
+    apk add --no-cache \
+    bash=5.2.21-r0 \
+    findutils=4.9.0-r5 && \
+    apk upgrade --available && \
+    rm -rf /var/cache/apk/* /tmp/* /var/tmp/*
+
+# Security: Create dedicated build user
+RUN addgroup -g 1000 -S builduser && \
+    adduser -u 1000 -S builduser -G builduser -h /build
+
+# Copy build files with proper ownership
+COPY --chown=builduser:builduser gradlew gradlew.bat ./
+COPY --chown=builduser:builduser gradle/ ./gradle/
+COPY --chown=builduser:builduser build.gradle.kts settings.gradle.kts gradle.properties ./
+COPY --chown=builduser:builduser buildSrc/ ./buildSrc/
+
+# Make gradlew executable
+RUN chmod +x ./gradlew
+
+# Switch to build user
+USER builduser
+
+# Download dependencies (better caching)
+RUN ./gradlew dependencies --no-daemon --quiet || true
+
+# Copy source code
+COPY --chown=builduser:builduser src/ ./src/
+
+# Build application
+RUN ./gradlew build $BUILD_ARGS --no-daemon --quiet
+
+# =============================================================================
+# Distroless Runtime (Most Secure - No shell, minimal attack surface)
+# =============================================================================
+FROM gcr.io/distroless/java21-debian12:nonroot as runtime-distroless
+
+LABEL org.opencontainers.image.title="Chiro ERP Microservice"
+LABEL org.opencontainers.image.description="Secure distroless runtime for Chiro ERP"
+LABEL org.opencontainers.image.vendor="Chiro ERP"
+LABEL org.opencontainers.image.security="distroless"
+
+WORKDIR /app
+
+# Copy application with minimal privileges
+COPY --from=builder --chown=nonroot:nonroot /build/build/*-runner.jar /app/application.jar
+
+USER nonroot
+EXPOSE 8080
+
+ENV JAVA_OPTS="-XX:+UseContainerSupport \
+    -XX:MaxRAMPercentage=75.0 \
+    -XX:+UseG1GC \
+    -XX:+UseStringDeduplication \
+    -XX:+UnlockExperimentalVMOptions \
+    -XX:+UseZGC \
+    -Djava.security.egd=file:/dev/./urandom"
+
+ENTRYPOINT ["java"]
+CMD ["-XX:+UseContainerSupport", "-XX:MaxRAMPercentage=75.0", "-XX:+UseG1GC", "-jar", "application.jar"]
+
+# =============================================================================
+# Alpine Runtime (Secure with health check capability)
+# =============================================================================
+FROM eclipse-temurin:${JAVA_VERSION}-jre-alpine as runtime-alpine
+
+LABEL org.opencontainers.image.title="Chiro ERP Microservice Alpine"
+LABEL org.opencontainers.image.description="Alpine-based runtime for Chiro ERP with health checks"
+LABEL org.opencontainers.image.vendor="Chiro ERP"
+LABEL org.opencontainers.image.security="alpine-hardened"
+
+WORKDIR /app
+
+# Security hardening and minimal packages
+RUN apk update && \
+    apk upgrade --available && \
+    apk add --no-cache \
+    curl=8.5.0-r0 \
+    dumb-init=1.2.5-r2 \
+    tzdata=2024a-r0 && \
+    # Remove unnecessary files
+    rm -rf /var/cache/apk/* \
+    /tmp/* \
+    /var/tmp/* \
+    /usr/share/man/* \
+    /usr/share/doc/*
+
+# Create application user with fixed UID/GID
+RUN addgroup -g 1001 -S appuser && \
+    adduser -u 1001 -S appuser -G appuser -h /app -s /sbin/nologin
+
+# Copy application with strict permissions
+COPY --from=builder --chown=appuser:appuser /build/build/*-runner.jar /app/application.jar
+
+# Harden file permissions
+RUN chmod 444 /app/application.jar && \
+    chmod 555 /app
+
+USER appuser
+EXPOSE 8080
+
+# Comprehensive health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
+    CMD curl -f --silent --show-error --connect-timeout 5 --max-time 10 \
+    http://localhost:8080/health/ready || exit 1
+
+# Security-focused JVM options
+ENV JAVA_OPTS="-server \
+    -XX:+UseContainerSupport \
+    -XX:MaxRAMPercentage=75.0 \
+    -XX:+UseG1GC \
+    -XX:+UseStringDeduplication \
+    -XX:+DisableExplicitGC \
+    -XX:+ExitOnOutOfMemoryError \
+    -Djava.security.egd=file:/dev/./urandom \
+    -Dfile.encoding=UTF-8 \
+    -Djava.awt.headless=true \
+    -Dnetworkaddress.cache.ttl=60"
+
+ENTRYPOINT ["dumb-init", "--"]
+CMD ["sh", "-c", "exec java $JAVA_OPTS -jar application.jar"]
+
+# =============================================================================
+# Native Runtime (Smallest footprint, fastest startup)
+# =============================================================================  
+FROM registry.access.redhat.com/ubi9/ubi-micro:9.3 as runtime-native
+
+LABEL org.opencontainers.image.title="Chiro ERP Native Microservice"
+LABEL org.opencontainers.image.description="Native GraalVM runtime for Chiro ERP"
+LABEL org.opencontainers.image.vendor="Chiro ERP"
+LABEL org.opencontainers.image.security="ubi-micro-native"
+
+WORKDIR /work/
+
+# Set up permissions for OpenShift compatibility
+RUN chown 1001:0 /work && \
+    chmod g+rwX /work
+
+# Copy native executable with strict permissions
+COPY --from=builder --chown=1001:0 --chmod=555 /build/build/*-runner /work/application
+
+EXPOSE 8080
+USER 1001
+
+ENTRYPOINT ["./application"]
+CMD ["-Dquarkus.http.host=0.0.0.0", "-Djava.util.logging.manager=org.jboss.logmanager.LogManager"]
+
+# =============================================================================
+# Development Runtime (With debugging tools)
+# =============================================================================
+FROM eclipse-temurin:${JAVA_VERSION}-jdk-alpine as runtime-dev
+
+LABEL org.opencontainers.image.title="Chiro ERP Development"
+LABEL org.opencontainers.image.description="Development runtime with debugging tools"
+LABEL org.opencontainers.image.vendor="Chiro ERP"
+LABEL org.opencontainers.image.security="development-only"
+
+WORKDIR /app
+
+# Development tools
+RUN apk update && \
+    apk add --no-cache \
+    curl=8.5.0-r0 \
+    bash=5.2.21-r0 \
+    htop=3.2.2-r1 \
+    procps=4.0.4-r0 && \
+    rm -rf /var/cache/apk/*
+
+# Create development user  
+RUN addgroup -g 1001 -S developer && \
+    adduser -u 1001 -S developer -G developer -h /app
+
+COPY --from=builder --chown=developer:developer /build/build/*-runner.jar /app/application.jar
+
+USER developer
+EXPOSE 8080 5005
+
+# Development JVM options with debugging
+ENV JAVA_OPTS="-XX:+UseContainerSupport \
+    -XX:MaxRAMPercentage=75.0 \
+    -XX:+UseG1GC \
+    -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005"
+
+HEALTHCHECK --interval=15s --timeout=5s --start-period=30s --retries=3 \
+    CMD curl -f http://localhost:8080/health || exit 1
+
+ENTRYPOINT ["sh", "-c", "exec java $JAVA_OPTS -jar application.jar"]

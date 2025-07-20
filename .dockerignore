@@ -1,5 +1,75 @@
+# Security-focused .dockerignore for Chiro ERP
+# Only include necessary files for container build
+
 *
+
+# Include only required build artifacts
 !build/*-runner
 !build/*-runner.jar
 !build/lib/*
 !build/quarkus-app/*
+
+# Include build configuration (if needed for multi-stage builds)
+!gradlew
+!gradlew.bat
+!gradle/
+!build.gradle.kts
+!settings.gradle.kts
+!gradle.properties
+!buildSrc/
+
+# Include source code (for multi-stage builds)
+!src/
+
+# Exclude sensitive and unnecessary files
+.env
+.env.*
+*.key
+*.pem
+*.p12
+*.jks
+secrets/
+.git/
+.gitignore
+.idea/
+.vscode/
+*.iml
+*.ipr
+*.iws
+.gradle/
+target/
+build/tmp/
+node_modules/
+*.log
+*.tmp
+*.temp
+.DS_Store
+Thumbs.db
+coverage/
+test-results/
+.pytest_cache/
+__pycache__/
+*.pyc
+*.pyo
+
+# Documentation and development files
+README.md
+docs/
+*.md
+LICENSE
+CHANGELOG*
+
+# CI/CD and deployment files (security risk)
+.github/
+.gitlab-ci.yml
+docker-compose*.yml
+Dockerfile*
+kubernetes/
+k8s/
+deploy/
+
+# Development and testing
+.env.template
+.env.example
+scripts/dev.ps1
+scripts/test-*

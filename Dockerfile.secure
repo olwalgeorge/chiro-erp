@@ -1,0 +1,145 @@
+# Security-hardened Dockerfile for Chiro ERP microservices
+# Using distroless images for maximum security
+
+# =============================================================================
+# Build Stage - Using Eclipse Temurin Alpine for security
+# =============================================================================
+FROM eclipse-temurin:21-jdk-alpine as builder
+
+WORKDIR /build
+
+# Install build dependencies with specific versions
+RUN apk update && \
+    apk add --no-cache \
+    bash=5.2.26-r0 \
+    findutils=4.9.0-r5 && \
+    apk upgrade --no-cache && \
+    rm -rf /var/cache/apk/* /tmp/* /var/tmp/*
+
+# Create non-root user for build process
+RUN addgroup -g 1000 -S builduser && \
+    adduser -u 1000 -S builduser -G builduser
+
+# Copy gradle wrapper and build files
+COPY --chown=builduser:builduser gradlew gradlew.bat ./
+COPY --chown=builduser:builduser gradle/ ./gradle/
+COPY --chown=builduser:builduser build.gradle.kts settings.gradle.kts gradle.properties ./
+
+# Copy buildSrc if it exists
+COPY --chown=builduser:builduser buildSrc/ ./buildSrc/
+
+# Make gradlew executable
+RUN chmod +x ./gradlew
+
+# Switch to non-root user for dependency download
+USER builduser
+
+# Download dependencies (for better layer caching)
+RUN ./gradlew dependencies --no-daemon --quiet || true
+
+# Copy source code
+COPY --chown=builduser:builduser src/ ./src/
+
+# Build the application
+ARG BUILD_ARGS=""
+RUN ./gradlew build -Dquarkus.package.jar.type=uber-jar --no-daemon --quiet $BUILD_ARGS
+
+# =============================================================================
+# Runtime Stage - Distroless for maximum security
+# =============================================================================
+FROM gcr.io/distroless/java21-debian12:nonroot as runtime-distroless
+
+WORKDIR /app
+
+# Copy the built application with proper ownership
+COPY --from=builder --chown=nonroot:nonroot /build/build/*-runner.jar /app/application.jar
+
+# Use distroless nonroot user (UID 65532)
+USER nonroot
+
+EXPOSE 8080
+
+# JVM tuning for containers and security
+ENV JAVA_OPTS="-XX:+UseContainerSupport \
+    -XX:MaxRAMPercentage=75.0 \
+    -XX:+UseG1GC \
+    -XX:+UseStringDeduplication \
+    -XX:+DisableExplicitGC \
+    -XX:+ExitOnOutOfMemoryError \
+    -Djava.security.egd=file:/dev/./urandom \
+    -Dfile.encoding=UTF-8"
+
+# Note: Distroless doesn't have shell, so we use exec form
+ENTRYPOINT ["java"]
+CMD ["-XX:+UseContainerSupport", "-XX:MaxRAMPercentage=75.0", "-XX:+UseG1GC", "-XX:+UseStringDeduplication", "-XX:+DisableExplicitGC", "-XX:+ExitOnOutOfMemoryError", "-Djava.security.egd=file:/dev/./urandom", "-Dfile.encoding=UTF-8", "-jar", "application.jar"]
+
+# =============================================================================
+# Runtime Stage - Alpine JRE (alternative with health check capability)
+# =============================================================================
+FROM eclipse-temurin:21-jre-alpine as runtime-alpine
+
+WORKDIR /app
+
+# Security updates and minimal packages
+RUN apk update && \
+    apk upgrade --no-cache && \
+    apk add --no-cache \
+    curl=8.7.1-r0 \
+    dumb-init=1.2.5-r3 && \
+    rm -rf /var/cache/apk/* /tmp/* /var/tmp/*
+
+# Create non-root user with specific UID/GID
+RUN addgroup -g 1001 -S chiro && \
+    adduser -u 1001 -S chiro -G chiro -h /app
+
+# Copy the built application with proper ownership
+COPY --from=builder --chown=chiro:chiro /build/build/*-runner.jar /app/application.jar
+
+# Remove write permissions from application files
+RUN chmod 555 /app/application.jar
+
+# Switch to non-root user
+USER chiro
+
+# Health check with timeout and proper error handling
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
+    CMD curl -f --connect-timeout 5 --max-time 10 http://localhost:8080/health/ready || exit 1
+
+EXPOSE 8080
+
+# JVM tuning for containers and security
+ENV JAVA_OPTS="-XX:+UseContainerSupport \
+    -XX:MaxRAMPercentage=75.0 \
+    -XX:+UseG1GC \
+    -XX:+UseStringDeduplication \
+    -XX:+DisableExplicitGC \
+    -XX:+ExitOnOutOfMemoryError \
+    -Djava.security.egd=file:/dev/./urandom \
+    -Dfile.encoding=UTF-8"
+
+# Use dumb-init to properly handle signals
+ENTRYPOINT ["dumb-init", "--"]
+CMD ["sh", "-c", "java $JAVA_OPTS -jar application.jar"]
+
+# =============================================================================
+# Runtime Stage - Native Mode with UBI Micro (most secure for native)
+# =============================================================================
+FROM registry.access.redhat.com/ubi9/ubi-micro:9.4 as runtime-native
+
+WORKDIR /work/
+
+# Create directories and set permissions
+RUN mkdir -p /work && \
+    chown 1001:0 /work && \
+    chmod g+rwX /work
+
+# Copy native executable with proper ownership and permissions
+COPY --from=builder --chown=1001:0 --chmod=555 /build/build/*-runner /work/application
+
+EXPOSE 8080
+USER 1001
+
+# Note: UBI Micro doesn't have curl, so no health check possible
+# Health checks should be handled by orchestrator (Kubernetes, Docker Swarm)
+ENTRYPOINT ["./application"]
+CMD ["-Dquarkus.http.host=0.0.0.0"]

@@ -1,0 +1,232 @@
+version: "3.8"
+
+services:
+  # =============================================================================
+  # PRODUCTION DEPLOYMENT CONFIGURATION
+  # =============================================================================
+
+  # Traefik as reverse proxy and load balancer
+  traefik:
+    image: traefik:v2.10
+    container_name: chiro-traefik
+    command:
+      - --api.insecure=false
+      - --providers.docker=true
+      - --providers.docker.exposedbydefault=false
+      - --entrypoints.web.address=:80
+      - --entrypoints.websecure.address=:443
+      - --certificatesresolvers.myresolver.acme.tlschallenge=true
+      - --certificatesresolvers.myresolver.acme.email=admin@chiro-erp.com
+      - --certificatesresolvers.myresolver.acme.storage=/letsencrypt/acme.json
+    ports:
+      - "80:80"
+      - "443:443"
+      - "8080:8080"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - letsencrypt_data:/letsencrypt
+    networks:
+      - chiro-network
+    restart: unless-stopped
+
+  # PostgreSQL with replication
+  postgres-primary:
+    image: postgres:15-alpine
+    container_name: chiro-postgres-primary
+    environment:
+      POSTGRES_DB: ${DB_NAME}
+      POSTGRES_USER: ${DB_USERNAME}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_REPLICATION_USER: ${DB_REPLICATION_USER:-replicator}
+      POSTGRES_REPLICATION_PASSWORD: ${DB_REPLICATION_PASSWORD}
+    volumes:
+      - postgres_primary_data:/var/lib/postgresql/data
+      - ./config/postgres/postgresql.conf:/etc/postgresql/postgresql.conf
+      - ./config/postgres/pg_hba.conf:/etc/postgresql/pg_hba.conf
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME}"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - chiro-network
+    restart: unless-stopped
+
+  # Redis Cluster for high availability
+  redis-node-1:
+    image: redis:7-alpine
+    container_name: chiro-redis-1
+    command: redis-server --port 7001 --cluster-enabled yes --cluster-config-file nodes.conf --cluster-node-timeout 5000 --appendonly yes
+    ports:
+      - "7001:7001"
+    volumes:
+      - redis_node_1_data:/data
+    networks:
+      - chiro-network
+    restart: unless-stopped
+
+  redis-node-2:
+    image: redis:7-alpine
+    container_name: chiro-redis-2
+    command: redis-server --port 7002 --cluster-enabled yes --cluster-config-file nodes.conf --cluster-node-timeout 5000 --appendonly yes
+    ports:
+      - "7002:7002"
+    volumes:
+      - redis_node_2_data:/data
+    networks:
+      - chiro-network
+    restart: unless-stopped
+
+  redis-node-3:
+    image: redis:7-alpine
+    container_name: chiro-redis-3
+    command: redis-server --port 7003 --cluster-enabled yes --cluster-config-file nodes.conf --cluster-node-timeout 5000 --appendonly yes
+    ports:
+      - "7003:7003"
+    volumes:
+      - redis_node_3_data:/data
+    networks:
+      - chiro-network
+    restart: unless-stopped
+
+  # Kafka Cluster
+  zookeeper-1:
+    image: confluentinc/cp-zookeeper:latest
+    container_name: chiro-zookeeper-1
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+      ZOOKEEPER_SERVER_ID: 1
+    volumes:
+      - zookeeper_1_data:/var/lib/zookeeper/data
+      - zookeeper_1_log:/var/lib/zookeeper/log
+    networks:
+      - chiro-network
+    restart: unless-stopped
+
+  kafka-1:
+    image: confluentinc/cp-kafka:latest
+    container_name: chiro-kafka-1
+    depends_on:
+      - zookeeper-1
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper-1:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka-1:9092
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "false"
+      KAFKA_LOG_RETENTION_HOURS: 168
+      KAFKA_LOG_SEGMENT_BYTES: 1073741824
+      KAFKA_LOG_RETENTION_CHECK_INTERVAL_MS: 300000
+    volumes:
+      - kafka_1_data:/var/lib/kafka/data
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "bash",
+          "-c",
+          "unset JMX_PORT; kafka-topics --bootstrap-server localhost:9092 --list",
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - chiro-network
+    restart: unless-stopped
+
+  # =============================================================================
+  # MICROSERVICES
+  # =============================================================================
+
+  api-gateway:
+    image: chiro-erp/api-gateway:${VERSION:-latest}
+    container_name: chiro-api-gateway
+    environment:
+      QUARKUS_PROFILE: prod
+      QUARKUS_DATASOURCE_JDBC_URL: jdbc:postgresql://postgres-primary:5432/${DB_NAME}
+      QUARKUS_DATASOURCE_USERNAME: ${DB_USERNAME}
+      QUARKUS_DATASOURCE_PASSWORD: ${DB_PASSWORD}
+      KAFKA_BOOTSTRAP_SERVERS: kafka-1:9092
+      REDIS_HOSTS: redis-node-1:7001,redis-node-2:7002,redis-node-3:7003
+      JAVA_OPTS: -Xms512m -Xmx1024m
+    depends_on:
+      postgres-primary:
+        condition: service_healthy
+      kafka-1:
+        condition: service_healthy
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.api-gateway.rule=Host(`api.chiro-erp.com`)"
+      - "traefik.http.routers.api-gateway.tls.certresolver=myresolver"
+      - "traefik.http.services.api-gateway.loadbalancer.server.port=8080"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    networks:
+      - chiro-network
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 1G
+        reservations:
+          cpus: "0.5"
+          memory: 512M
+
+  user-management-service:
+    image: chiro-erp/user-management-service:${VERSION:-latest}
+    container_name: chiro-user-management
+    environment:
+      QUARKUS_PROFILE: prod
+      QUARKUS_DATASOURCE_JDBC_URL: jdbc:postgresql://postgres-primary:5432/${DB_NAME}
+      QUARKUS_DATASOURCE_USERNAME: ${DB_USERNAME}
+      QUARKUS_DATASOURCE_PASSWORD: ${DB_PASSWORD}
+      KAFKA_BOOTSTRAP_SERVERS: kafka-1:9092
+      JAVA_OPTS: -Xms256m -Xmx512m
+    depends_on:
+      postgres-primary:
+        condition: service_healthy
+      kafka-1:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    networks:
+      - chiro-network
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 512M
+        reservations:
+          cpus: "0.25"
+          memory: 256M
+
+volumes:
+  letsencrypt_data:
+  postgres_primary_data:
+  redis_node_1_data:
+  redis_node_2_data:
+  redis_node_3_data:
+  zookeeper_1_data:
+  zookeeper_1_log:
+  kafka_1_data:
+
+networks:
+  chiro-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16

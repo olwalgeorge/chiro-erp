@@ -1,0 +1,100 @@
+# Enhanced Dockerfile for Chiro ERP microservices
+# Multi-stage build optimized for Quarkus applications with security hardening
+
+# =============================================================================
+# Build Stage - Using Eclipse Temurin (more secure and maintained)
+# =============================================================================
+FROM eclipse-temurin:21-jdk-alpine as builder
+
+WORKDIR /build
+
+# Install required tools with specific versions and security updates
+RUN apk update && \
+    apk add --no-cache \
+    curl=8.7.1-r0 \
+    wget=1.24.5-r0 \
+    unzip=6.0-r14 \
+    bash=5.2.26-r0 && \
+    apk upgrade && \
+    rm -rf /var/cache/apk/*
+
+# Copy gradle wrapper and build files
+COPY gradlew gradlew.bat ./
+COPY gradle/ ./gradle/
+COPY build.gradle.kts settings.gradle.kts gradle.properties ./
+
+# Copy buildSrc if it exists
+COPY buildSrc/ ./buildSrc/
+
+# Download dependencies (for better layer caching)
+RUN ./gradlew dependencies --no-daemon || true
+
+# Copy source code
+COPY src/ ./src/
+
+# Build the application
+ARG BUILD_ARGS=""
+RUN ./gradlew build -Dquarkus.package.jar.type=uber-jar --no-daemon $BUILD_ARGS
+
+# =============================================================================
+# Runtime Stage - JVM Mode with Alpine for security
+# =============================================================================
+FROM eclipse-temurin:21-jre-alpine as runtime-jvm
+
+WORKDIR /app
+
+# Create non-root user with specific UID/GID for security
+RUN addgroup -g 1001 -S chiro && \
+    adduser -u 1001 -S chiro -G chiro
+
+# Install curl for health checks with specific version
+RUN apk update && \
+    apk add --no-cache curl=8.7.1-r0 && \
+    apk upgrade && \
+    rm -rf /var/cache/apk/*
+
+# Copy the built application
+COPY --from=builder /build/build/*-runner.jar /app/application.jar
+
+# Set ownership
+RUN chown -R chiro:chiro /app
+
+# Switch to non-root user
+USER chiro
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
+    CMD curl -f http://localhost:8080/health/ready || exit 1
+
+EXPOSE 8080
+
+# JVM tuning for containers
+ENV JAVA_OPTS="-XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0 -XX:+UseG1GC -XX:+UseStringDeduplication"
+
+ENTRYPOINT ["sh", "-c", "java $JAVA_OPTS -jar application.jar"]
+
+# =============================================================================
+# Runtime Stage - Native Mode (Optional)
+# =============================================================================
+FROM registry.access.redhat.com/ubi9/ubi-minimal:9.5 as runtime-native
+
+WORKDIR /work/
+
+RUN chown 1001 /work \
+    && chmod "g+rwX" /work \
+    && chown 1001:root /work
+
+# Install curl for health checks
+RUN microdnf install curl && \
+    microdnf clean all
+
+COPY --from=builder --chown=1001:root --chmod=0755 /build/build/*-runner /work/application
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
+    CMD curl -f http://localhost:8080/health/ready || exit 1
+
+EXPOSE 8080
+USER 1001
+
+ENTRYPOINT ["./application", "-Dquarkus.http.host=0.0.0.0"]
