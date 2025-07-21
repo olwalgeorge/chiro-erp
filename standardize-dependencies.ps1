@@ -1,7 +1,9 @@
 #!/usr/bin/env pwsh
 # Standardize Dependencies Script for Chiro ERP
 # Aligns dependencies with GitHub reference project (https://github.com/olwalgeorge/erp)
-# Focus: REST with Kotlin serialization, ORM, and Jackson for external serialization
+# Focus: HYBRID SERIALIZATION STRATEGY (BEST PRACTICE)
+# - Kotlin Serialization: Internal APIs, type-safe, compile-time validation
+# - Jackson: External APIs, ecosystem compatibility, enterprise integrations
 
 Write-Host "🔧 Standardizing Chiro ERP Dependencies..." -ForegroundColor Cyan
 
@@ -77,7 +79,9 @@ Write-Host "📝 Updating common-conventions.gradle.kts..." -ForegroundColor Yel
 $commonConventionsContent = @"
 // Common conventions for Chiro ERP consolidated services
 // Aligned with reference project: https://github.com/olwalgeorge/erp/blob/main/build.gradle.kts
-// Focus: REST with Kotlin serialization, ORM, and Jackson for external serialization
+// HYBRID SERIALIZATION STRATEGY (Enterprise Best Practice):
+// - Kotlin Serialization: Internal APIs (type-safe, compile-time validation)
+// - Jackson: External APIs (ecosystem compatibility, enterprise integrations)
 
 plugins {
     kotlin("jvm")
@@ -97,16 +101,16 @@ val quarkusPlatformVersion: String by project
 
 dependencies {
     // Quarkus BOM - enforced platform manages all versions (like reference project)
-    implementation(enforcedPlatform("`${quarkusPlatformGroupId}:`${quarkusPlatformArtifactId}:`${quarkusPlatformVersion}"))
+    implementation(enforcedPlatform("`$quarkusPlatformGroupId:`$quarkusPlatformArtifactId:`$quarkusPlatformVersion"))
     
     // Core Quarkus with Kotlin support
     implementation("io.quarkus:quarkus-kotlin")
     implementation("io.quarkus:quarkus-arc") // CDI container (from reference)
     
-    // REST layer (enhanced from reference with Kotlin serialization)
-    implementation("io.quarkus:quarkus-rest") // Main REST (from reference)
+    // HYBRID REST SERIALIZATION STRATEGY
+    implementation("io.quarkus:quarkus-rest") // Main REST framework
     implementation("io.quarkus:quarkus-rest-kotlin-serialization") // Kotlin serialization for internal APIs
-    implementation("io.quarkus:quarkus-rest-jackson") // Jackson for external integrations (from reference)
+    implementation("io.quarkus:quarkus-rest-jackson") // Jackson for external integrations & legacy compatibility
     
     // Database layer (from reference + Kotlin Panache)
     implementation("io.quarkus:quarkus-hibernate-orm") // Core ORM (from reference)
@@ -195,7 +199,7 @@ Write-Host "📝 Updating service-conventions.gradle.kts..." -ForegroundColor Ye
 $serviceConventionsContent = @"
 // Service-specific conventions for Chiro ERP consolidated services
 // Extends common-conventions with additional service-specific dependencies
-// Maintains REST with Kotlin serialization and Jackson for external APIs
+// HYBRID SERIALIZATION: Kotlin for internal APIs, Jackson for external integrations
 
 plugins {
     id("common-conventions")
@@ -206,9 +210,10 @@ dependencies {
     implementation("io.quarkus:quarkus-smallrye-reactive-messaging-kafka")
     implementation("io.quarkus:quarkus-kafka-client")
     
-    // Service mesh and inter-service communication
+    // Service mesh and inter-service communication (HYBRID APPROACH)
     implementation("io.quarkus:quarkus-rest-client-reactive")
-    implementation("io.quarkus:quarkus-rest-client-reactive-jackson") // Jackson for external service calls
+    implementation("io.quarkus:quarkus-rest-client-reactive-kotlin-serialization") // Internal service calls
+    implementation("io.quarkus:quarkus-rest-client-reactive-jackson") // External service integrations
     
     // Advanced persistence features
     implementation("io.quarkus:quarkus-flyway")
@@ -222,8 +227,9 @@ dependencies {
     implementation("io.quarkus:quarkus-container-image-docker")
     implementation("io.quarkus:quarkus-kubernetes")
     
-    // GraphQL support for consolidated APIs (uses Jackson by default)
+    // GraphQL support for consolidated APIs (HYBRID: uses both serializers)
     implementation("io.quarkus:quarkus-smallrye-graphql")
+    implementation("io.quarkus:quarkus-smallrye-graphql-client") // For external GraphQL APIs
     
     // Enhanced testing for modular services
     testImplementation("io.quarkus:quarkus-test-h2") // In-memory testing
@@ -240,7 +246,7 @@ Write-Host "📝 Updating consolidated-service-conventions.gradle.kts..." -Foreg
 $consolidatedConventionsContent = @"
 // Consolidated service-specific conventions
 // For the 5 main consolidated services with multiple modules
-// Maintains consistent REST + Kotlin serialization + Jackson pattern
+// HYBRID SERIALIZATION: Kotlin + Jackson for maximum compatibility and performance
 
 plugins {
     id("service-conventions")
@@ -264,13 +270,16 @@ dependencies {
     // Email and notifications
     implementation("io.quarkus:quarkus-mailer")
     
-    // WebSocket support for real-time features (uses Jackson serialization)
+    // WebSocket support for real-time features (supports both serializers)
     implementation("io.quarkus:quarkus-websockets")
     
+    // External integrations (Jackson for compatibility)
+    implementation("io.quarkus:quarkus-rest-client-reactive-jackson") // External APIs
+    
     // Enhanced testing for consolidated services
-    testImplementation("io.quarkus:quarkus-test-artemis")
-    testImplementation("io.quarkus:quarkus-test-security")
-    testImplementation("io.quarkus:quarkus-test-kafka-companion")
+    testImplementation("io.quarkus:quarkus-test-h2") // In-memory testing
+    testImplementation("org.testcontainers:postgresql") // Integration testing
+    testImplementation("org.testcontainers:junit-jupiter")
 }
 
 // Group configuration
@@ -295,10 +304,11 @@ Generated: $(Get-Date)
 
 ## Key Standardizations Applied
 
-### 1. REST API Strategy
-- **Internal APIs**: Kotlin Serialization (`quarkus-rest-kotlin-serialization`)
-- **External APIs**: Jackson (`quarkus-rest-jackson`)
+### 1. REST API Strategy (HYBRID BEST PRACTICE)
+- **Internal APIs**: Kotlin Serialization (`quarkus-rest-kotlin-serialization`) - Type-safe, compile-time validation
+- **External APIs**: Jackson (`quarkus-rest-jackson`) - Ecosystem compatibility, enterprise integrations
 - **Core REST**: `quarkus-rest` (from reference project)
+- **Benefits**: Best of both worlds - type safety for internal, compatibility for external
 
 ### 2. Database Layer
 - **Core ORM**: `quarkus-hibernate-orm` (from reference)
