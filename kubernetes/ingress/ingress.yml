@@ -89,12 +89,12 @@ spec:
             name: operations-management-service
             port:
               number: 80
-      # platform-services - /api/billing
+      # core-business-service - /api/billing
       - path: /api/billing
         pathType: Prefix
         backend:
           service:
-            name: platform-services
+            name: core-business-service
             port:
               number: 80
       # core-business-service - /api/finance
@@ -153,12 +153,12 @@ spec:
             name: workforce-management-service
             port:
               number: 80
-      # platform-services - /api/tenants
+      # workforce-management-service - /api/tenants
       - path: /api/tenants
         pathType: Prefix
         backend:
           service:
-            name: platform-services
+            name: workforce-management-service
             port:
               number: 80
   # TLS configuration (optional)

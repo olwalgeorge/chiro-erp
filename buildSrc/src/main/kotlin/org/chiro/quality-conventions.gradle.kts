@@ -30,8 +30,8 @@ detekt {
     buildUponDefaultConfig = true
     allRules = false
     
-    config.setFrom("\/config/detekt.yml")
-    baseline = file("\/config/baseline.xml")
+    config.setFrom("$rootDir/config/detekt.yml")
+    baseline = file("$rootDir/config/baseline.xml")
     
     reports {
         html.required.set(true)

@@ -1,5 +1,5 @@
 plugins {
-    kotlin-dsl
+    `kotlin-dsl`
 }
 
 repositories {
@@ -8,13 +8,15 @@ repositories {
 }
 
 dependencies {
-    // Required plugins for convention plugins
+    // Quarkus plugin for access to BOM and version management
+    implementation("io.quarkus:gradle-application-plugin:3.24.4")
+    
+    // Kotlin plugins
     implementation("org.jetbrains.kotlin:kotlin-gradle-plugin:2.1.21")
     implementation("org.jetbrains.kotlin:kotlin-allopen:2.1.21")
     implementation("org.jetbrains.kotlin:kotlin-serialization:2.1.21")
-    implementation("io.quarkus:gradle-application-plugin:3.24.4")
     
-    // Code Quality plugins (compatible with Quarkus & Kotlin)
+    // Code Quality plugins
     implementation("com.diffplug.spotless:spotless-plugin-gradle:6.25.0")
     implementation("io.gitlab.arturbosch.detekt:detekt-gradle-plugin:1.23.4")
     
@@ -29,12 +31,4 @@ dependencies {
 // Kotlin configuration for buildSrc
 kotlin {
     jvmToolchain(21)
-}
-
-// Optimize buildSrc build
-tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile> {
-    kotlinOptions {
-        jvmTarget = "21"
-        freeCompilerArgs = listOf("-Xjsr305=strict")
-    }
 }

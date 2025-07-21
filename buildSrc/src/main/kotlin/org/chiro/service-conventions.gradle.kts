@@ -42,17 +42,19 @@ dependencies {
     testImplementation("org.testcontainers:kafka")
 }
 
-// Quarkus configuration for consolidated services
-quarkus {
-    extension {
-        // Enable native compilation optimization
-        buildNative {
-            additionalBuildArgs = [
-                "--initialize-at-build-time=org.slf4j.LoggerFactory",
-                "--initialize-at-build-time=org.slf4j.impl.StaticLoggerBinder"
-            ]
-        }
+// Enhanced testing configurations
+tasks.test {
+    useJUnitPlatform()
+    systemProperty("java.util.logging.manager", "org.jboss.logmanager.LogManager")
+    
+    // Test performance optimization
+    maxParallelForks = (Runtime.getRuntime().availableProcessors() / 2).takeIf { it > 0 } ?: 1
+    
+    testLogging {
+        events("passed", "skipped", "failed")
+        exceptionFormat = org.gradle.api.tasks.testing.logging.TestExceptionFormat.FULL
     }
+}
 }
 
 // Enhanced JVM configuration for consolidated services
@@ -77,9 +79,7 @@ tasks.test {
     // Memory configuration for testing multiple modules
     minHeapSize = "512m"
     maxHeapSize = "2g"
-    
-    // Parallel execution for module tests
-    maxParallelForks = Runtime.runtime.availableProcessors().div(2).takeIf { it > 0 } ?: 1
+}
 }
 
 // Docker configuration for consolidated services

@@ -2,24 +2,16 @@ plugins {
     id("consolidated-service-conventions")
 }
 
-repositories {
-    mavenCentral()
-    mavenLocal()
-}
-
-val quarkusPlatformGroupId: String by project
-val quarkusPlatformArtifactId: String by project
-val quarkusPlatformVersion: String by project
-
 dependencies {
-    implementation(enforcedPlatform("${quarkusPlatformGroupId}:${quarkusPlatformArtifactId}:${quarkusPlatformVersion}"))
+    // Customer Relations Service specific dependencies
     
-    // Quarkus Core
-    implementation("io.quarkus:quarkus-kotlin")
-    implementation("io.quarkus:quarkus-jackson")
-    implementation("io.quarkus:quarkus-arc")
-    implementation("io.quarkus:quarkus-resteasy-reactive")
-    implementation("io.quarkus:quarkus-resteasy-reactive-jackson")
+    // CRM and customer interaction tracking
+    implementation("io.quarkus:quarkus-cache")
+    
+    // Email and communication
+    implementation("io.quarkus:quarkus-mailer")
+    
+    // Additional CRM dependencies will be inherited from conventions
     
     // Database
     implementation("io.quarkus:quarkus-hibernate-orm-panache-kotlin")
@@ -51,13 +43,13 @@ dependencies {
 }
 
 java {
-    sourceCompatibility = JavaVersion.VERSION_17
-    targetCompatibility = JavaVersion.VERSION_17
+    sourceCompatibility = JavaVersion.VERSION_21
+    targetCompatibility = JavaVersion.VERSION_21
 }
 
 tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile> {
-    kotlinOptions {
-        jvmTarget = "17"
-        javaParameters = true
+    compilerOptions {
+        jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_21)
+        javaParameters.set(true)
     }
 }

@@ -15,7 +15,7 @@ repositories {
 
 dependencies {
     // Quarkus BOM - manages all versions
-    implementation(platform("io.quarkus.platform:quarkus-bom:\"))
+    implementation(platform("io.quarkus.platform:quarkus-bom:3.24.4"))
     
     // Core Quarkus with Kotlin support
     implementation("io.quarkus:quarkus-kotlin")
@@ -24,7 +24,13 @@ dependencies {
     // REST with Kotlin Serialization (consistent across all services)
     implementation("io.quarkus:quarkus-rest")
     implementation("io.quarkus:quarkus-rest-kotlin-serialization")
-    implementation("io.quarkus:quarkus-rest-jackson") // For external integrations
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json")
+    
+    // Explicitly exclude Jackson to prevent conflicts with Kotlin Serialization
+    configurations.all {
+        exclude(group = "com.fasterxml.jackson.core")
+        exclude(group = "com.fasterxml.jackson.module", module = "jackson-module-kotlin")
+    }
     
     // Database layer - Hibernate ORM with Kotlin Panache
     implementation("io.quarkus:quarkus-hibernate-orm-panache-kotlin")

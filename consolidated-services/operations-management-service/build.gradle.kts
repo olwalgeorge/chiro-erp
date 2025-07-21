@@ -2,24 +2,16 @@ plugins {
     id("consolidated-service-conventions")
 }
 
-repositories {
-    mavenCentral()
-    mavenLocal()
-}
-
-val quarkusPlatformGroupId: String by project
-val quarkusPlatformArtifactId: String by project
-val quarkusPlatformVersion: String by project
-
 dependencies {
-    implementation(enforcedPlatform("${quarkusPlatformGroupId}:${quarkusPlatformArtifactId}:${quarkusPlatformVersion}"))
+    // Operations Management Service specific dependencies
     
-    // Quarkus Core
-    implementation("io.quarkus:quarkus-kotlin")
-    implementation("io.quarkus:quarkus-jackson")
-    implementation("io.quarkus:quarkus-arc")
-    implementation("io.quarkus:quarkus-resteasy-reactive")
-    implementation("io.quarkus:quarkus-resteasy-reactive-jackson")
+    // Field service and project management
+    implementation("io.quarkus:quarkus-scheduler")
+    
+    // Fleet and asset tracking
+    implementation("io.quarkus:quarkus-cache")
+    
+    // Additional operations dependencies will be inherited from conventions
     
     // Database
     implementation("io.quarkus:quarkus-hibernate-orm-panache-kotlin")

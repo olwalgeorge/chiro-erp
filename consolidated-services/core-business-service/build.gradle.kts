@@ -2,28 +2,17 @@ plugins {
     id("consolidated-service-conventions")
 }
 
-repositories {
-    mavenCentral()
-    mavenLocal()
-}
-
-val quarkusPlatformGroupId: String by project
-val quarkusPlatformArtifactId: String by project
-val quarkusPlatformVersion: String by project
-
 dependencies {
-    implementation(enforcedPlatform("${quarkusPlatformGroupId}:${quarkusPlatformArtifactId}:${quarkusPlatformVersion}"))
+    // Core Business Service specific dependencies
     
-    // Quarkus Core
-    implementation("io.quarkus:quarkus-kotlin")
-    implementation("io.quarkus:quarkus-jackson")
-    implementation("io.quarkus:quarkus-arc")
-    implementation("io.quarkus:quarkus-resteasy-reactive")
-    implementation("io.quarkus:quarkus-resteasy-reactive-jackson")
+    // Financial calculations and precision
+    implementation("io.quarkus:quarkus-agroal")
     
-    // Database
-    implementation("io.quarkus:quarkus-hibernate-orm-panache-kotlin")
-    implementation("io.quarkus:quarkus-jdbc-postgresql")
+    // Time series data for manufacturing metrics  
+    implementation("io.quarkus:quarkus-micrometer")
+    
+    // Additional business logic dependencies are inherited from conventions
+}
     implementation("io.quarkus:quarkus-flyway")
     
     // Messaging
@@ -51,14 +40,14 @@ dependencies {
 }
 
 java {
-    sourceCompatibility = JavaVersion.VERSION_17
-    targetCompatibility = JavaVersion.VERSION_17
+    sourceCompatibility = JavaVersion.VERSION_21
+    targetCompatibility = JavaVersion.VERSION_21
 }
 
 tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile> {
-    kotlinOptions {
-        jvmTarget = "17"
-        javaParameters = true
+    compilerOptions {
+        jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_21)
+        javaParameters.set(true)
     }
 }
 

@@ -44,7 +44,7 @@ tasks.register("validateModuleStructure") {
             throw GradleException("Consolidated service must have at least one module")
         }
         
-        println("✅ Validated \ modules in \")
+        println("✅ Validated modules in ${project.name}")
     }
 }
 

@@ -35,6 +35,7 @@ class ConsolidatedRequestRoutingService {
     lateinit var workforceManagementUrl: String
     
     private val serviceMapping = mapOf(
+        "/api/billing" to "core-business",
         "/api/finance" to "core-business",
         "/api/sales" to "core-business", 
         "/api/inventory" to "core-business",
@@ -48,10 +49,9 @@ class ConsolidatedRequestRoutingService {
         "/api/crm" to "customer-relations",
         "/api/analytics" to "platform-services",
         "/api/notifications" to "platform-services",
-        "/api/tenants" to "platform-services",
-        "/api/billing" to "platform-services",
         "/api/hr" to "workforce-management",
-        "/api/users" to "workforce-management"
+        "/api/users" to "workforce-management",
+        "/api/tenants" to "workforce-management"
     )
     
     @Route(path = "/api/*", methods = [HttpMethod.GET, HttpMethod.POST, HttpMethod.PUT, HttpMethod.DELETE, HttpMethod.PATCH])
