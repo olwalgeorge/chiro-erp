@@ -1,0 +1,35 @@
+# Multi-stage build for GraalVM native compilation
+FROM quay.io/quarkus/ubi-quarkus-mandrel-builder-image:23.0-java17 AS build
+
+# Set working directory
+WORKDIR /code
+
+# Copy gradle wrapper and dependencies
+COPY gradle/ gradle/
+COPY gradlew gradlew.bat gradle.properties settings.gradle.kts ./
+COPY buildSrc/ buildSrc/
+
+# Copy all consolidated service source code
+COPY consolidated-services/ consolidated-services/
+
+# Build native executable
+RUN ./gradlew :consolidated-services:core-business-service:build -Dquarkus.package.type=native -Dquarkus.native.container-build=true
+
+# Runtime stage - minimal image
+FROM quay.io/quarkus/quarkus-micro-image:2.0
+
+# Copy the native executable
+COPY --from=build /code/consolidated-services/core-business-service/build/*-runner /work/application
+
+# Set proper permissions
+RUN chmod 775 /work/application
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+    CMD curl -f http://localhost:8080/q/health || exit 1
+
+# Expose port
+EXPOSE 8080
+
+# Run the native executable
+CMD ["./application", "-Dquarkus.http.host=0.0.0.0"]

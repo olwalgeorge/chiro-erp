@@ -1,0 +1,106 @@
+# Consolidated Multi-Service Dockerfile for Chiro ERP
+# Builds all consolidated services with a single Docker context
+# Usage: docker build --build-arg SERVICE_NAME=<service-name> -t chiro-erp/<service-name> .
+
+ARG JAVA_VERSION=21
+ARG GRADLE_VERSION=8.5
+
+# =============================================================================
+# Build Stage - Shared build environment for all services
+# =============================================================================
+FROM gradle:${GRADLE_VERSION}-jdk${JAVA_VERSION}-alpine AS builder
+
+# Build arguments
+ARG SERVICE_NAME
+ARG BUILD_PROFILE=prod
+
+WORKDIR /build
+
+# Security: Create dedicated build user
+RUN addgroup -g 1000 -S builduser && \
+    adduser -u 1000 -S builduser -G builduser -h /build
+
+# Copy gradle wrapper and dependencies first (better caching)
+COPY --chown=builduser:builduser gradlew gradlew.bat ./
+COPY --chown=builduser:builduser gradle/ ./gradle/
+COPY --chown=builduser:builduser build.gradle.kts settings.gradle.kts gradle.properties ./
+COPY --chown=builduser:builduser buildSrc/ ./buildSrc/
+
+# Make gradlew executable
+RUN chmod +x ./gradlew
+
+# Switch to build user
+USER builduser
+
+# Download dependencies (cached layer)
+RUN ./gradlew dependencies --no-daemon --quiet || true
+
+# Copy all consolidated services source
+COPY --chown=builduser:builduser consolidated-services/ ./consolidated-services/
+COPY --chown=builduser:builduser api-gateway/ ./api-gateway/
+
+# Validate SERVICE_NAME argument
+RUN if [ -z "$SERVICE_NAME" ]; then \
+    echo "ERROR: SERVICE_NAME build argument is required"; \
+    exit 1; \
+    fi
+
+# Build specific service
+RUN ./gradlew :consolidated-services:${SERVICE_NAME}:build -Dquarkus.package.type=uber-jar --no-daemon
+
+# =============================================================================
+# Runtime Stage - Optimized for production
+# =============================================================================
+FROM eclipse-temurin:${JAVA_VERSION}-jre-alpine AS runtime
+
+ARG SERVICE_NAME
+ARG SERVICE_PORT=8080
+
+LABEL org.opencontainers.image.title="Chiro ERP - ${SERVICE_NAME}"
+LABEL org.opencontainers.image.description="Consolidated ${SERVICE_NAME} for Chiro ERP"
+LABEL org.opencontainers.image.vendor="Chiro ERP"
+LABEL org.opencontainers.image.service="${SERVICE_NAME}"
+
+WORKDIR /app
+
+# Security hardening
+RUN apk update && \
+    apk upgrade --available && \
+    apk add --no-cache \
+    curl=8.5.0-r0 \
+    dumb-init=1.2.5-r2 \
+    && rm -rf /var/cache/apk/* /tmp/* /var/tmp/*
+
+# Create application user
+RUN addgroup -g 1001 -S appuser && \
+    adduser -u 1001 -S appuser -G appuser -h /app
+
+# Copy built application
+COPY --from=builder --chown=appuser:appuser \
+    /build/consolidated-services/${SERVICE_NAME}/build/*-runner.jar \
+    /app/application.jar
+
+# Health check script
+RUN echo '#!/bin/sh\ncurl -f http://localhost:${SERVICE_PORT}/q/health/ready || exit 1' > /app/healthcheck.sh && \
+    chmod +x /app/healthcheck.sh && \
+    chown appuser:appuser /app/healthcheck.sh
+
+USER appuser
+
+EXPOSE ${SERVICE_PORT}
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
+    CMD /app/healthcheck.sh
+
+# Optimized JVM settings for containers
+ENV JAVA_OPTS="-XX:+UseContainerSupport \
+    -XX:MaxRAMPercentage=75.0 \
+    -XX:+UseG1GC \
+    -XX:+UseStringDeduplication \
+    -Djava.security.egd=file:/dev/./urandom \
+    -Dquarkus.http.host=0.0.0.0 \
+    -Dquarkus.http.port=${SERVICE_PORT}"
+
+ENTRYPOINT ["dumb-init", "--"]
+CMD ["sh", "-c", "java $JAVA_OPTS -jar application.jar"]

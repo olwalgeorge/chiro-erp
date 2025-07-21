@@ -29,3 +29,36 @@ dependencies {
     implementation("io.quarkus:quarkus-logging-json")
     implementation("io.quarkus:quarkus-opentelemetry")
 }
+
+// GraalVM Native Configuration
+quarkus {
+    buildForkOptions {
+        systemProperty("java.util.logging.manager", "org.jboss.logmanager.LogManager")
+        systemProperty("maven.home", System.getenv("M2_HOME"))
+    }
+}
+
+tasks {
+    register("buildNative") {
+        group = "build"
+        description = "Build native executable"
+        
+        doLast {
+            exec {
+                commandLine("./gradlew", "build", "-Dquarkus.package.type=native")
+            }
+        }
+    }
+    
+    register("dockerBuildNative") {
+        dependsOn("buildNative")  
+        group = "docker"
+        description = "Build native Docker image"
+        
+        doLast {
+            exec {
+                commandLine("docker", "build", "-f", "docker/Dockerfile.native", "-t", "api-gateway:latest-native", ".")
+            }
+        }
+    }
+}

@@ -30,6 +30,9 @@ dependencies {
     // External integrations (Jackson for compatibility)
     implementation("io.quarkus:quarkus-rest-client-reactive-jackson") // External APIs
     
+    // GraalVM Native Image support
+    implementation("io.quarkus:quarkus-container-image-docker")
+    
     // Enhanced testing for consolidated services
     testImplementation("io.quarkus:quarkus-test-h2") // In-memory testing
     testImplementation("org.testcontainers:postgresql") // Integration testing
@@ -39,3 +42,11 @@ dependencies {
 // Group configuration
 group = "com.chiro.consolidated"
 version = "1.0.0-SNAPSHOT"
+
+// GraalVM Native configuration
+tasks.withType<org.gradle.api.tasks.compile.JavaCompile> {
+    options.compilerArgs.addAll(listOf(
+        "--enable-preview",
+        "-parameters"
+    ))
+}
