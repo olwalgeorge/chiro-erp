@@ -1,5 +1,5 @@
 # Dependency Standardization Summary
-Generated: 07/21/2025 16:40:50
+Generated: 07/21/2025 17:23:55
 
 ## Reference Project Alignment
 - Source: https://github.com/olwalgeorge/erp
@@ -9,10 +9,11 @@ Generated: 07/21/2025 16:40:50
 
 ## Key Standardizations Applied
 
-### 1. REST API Strategy
-- **Internal APIs**: Kotlin Serialization (quarkus-rest-kotlin-serialization)
-- **External APIs**: Jackson (quarkus-rest-jackson)
+### 1. REST API Strategy (HYBRID BEST PRACTICE)
+- **Internal APIs**: Kotlin Serialization (quarkus-rest-kotlin-serialization) - Type-safe, compile-time validation
+- **External APIs**: Jackson (quarkus-rest-jackson) - Ecosystem compatibility, enterprise integrations
 - **Core REST**: quarkus-rest (from reference project)
+- **Benefits**: Best of both worlds - type safety for internal, compatibility for external
 
 ### 2. Database Layer
 - **Core ORM**: quarkus-hibernate-orm (from reference)

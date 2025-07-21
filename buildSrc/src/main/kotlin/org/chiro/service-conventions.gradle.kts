@@ -1,6 +1,6 @@
 // Service-specific conventions for Chiro ERP consolidated services
 // Extends common-conventions with additional service-specific dependencies
-// Maintains REST with Kotlin serialization and Jackson for external APIs
+// HYBRID SERIALIZATION: Kotlin for internal APIs, Jackson for external integrations
 
 plugins {
     id("common-conventions")
@@ -11,9 +11,10 @@ dependencies {
     implementation("io.quarkus:quarkus-smallrye-reactive-messaging-kafka")
     implementation("io.quarkus:quarkus-kafka-client")
     
-    // Service mesh and inter-service communication
+    // Service mesh and inter-service communication (HYBRID APPROACH)
     implementation("io.quarkus:quarkus-rest-client-reactive")
-    implementation("io.quarkus:quarkus-rest-client-reactive-jackson") // Jackson for external service calls
+    implementation("io.quarkus:quarkus-rest-client-reactive-kotlin-serialization") // Internal service calls
+    implementation("io.quarkus:quarkus-rest-client-reactive-jackson") // External service integrations
     
     // Advanced persistence features
     implementation("io.quarkus:quarkus-flyway")
@@ -27,8 +28,9 @@ dependencies {
     implementation("io.quarkus:quarkus-container-image-docker")
     implementation("io.quarkus:quarkus-kubernetes")
     
-    // GraphQL support for consolidated APIs (uses Jackson by default)
+    // GraphQL support for consolidated APIs (HYBRID: uses both serializers)
     implementation("io.quarkus:quarkus-smallrye-graphql")
+    implementation("io.quarkus:quarkus-smallrye-graphql-client") // For external GraphQL APIs
     
     // Enhanced testing for modular services
     testImplementation("io.quarkus:quarkus-test-h2") // In-memory testing

@@ -7,8 +7,8 @@ param(
     [switch]$Force
 )
 
-Write-Host "🔧 Chiro ERP Dependencies Auto-Fix Tool" -ForegroundColor Cyan
-Write-Host "=========================================" -ForegroundColor Cyan
+Write-Host "🔧 Chiro ERP Dependencies Auto-Fix Tool (Enhanced)" -ForegroundColor Cyan
+Write-Host "======================================================" -ForegroundColor Cyan
 
 if ($DryRun) {
     Write-Host "🔍 DRY RUN MODE - No changes will be made" -ForegroundColor Yellow
@@ -222,7 +222,7 @@ function Update-ServiceConventions {
     }
 }
 
-function Repair-SyntaxErrors {
+function Fix-SyntaxErrors {
     Write-Host "`n🔍 Checking for syntax errors in build files..." -ForegroundColor Cyan
     
     $buildFiles = @(
@@ -309,8 +309,8 @@ function Show-FixSummary {
     
     if ($Script:Errors.Count -gt 0) {
         Write-Host "❌ Errors encountered: $($Script:Errors.Count)" -ForegroundColor Red
-        foreach ($errorMsg in $Script:Errors) {
-            Write-Host "   • $errorMsg" -ForegroundColor Red
+        foreach ($error in $Script:Errors) {
+            Write-Host "   • $error" -ForegroundColor Red
         }
     }
     
@@ -339,7 +339,7 @@ Update-GradleProperties
 Update-BuildSrc  
 Update-CommonConventions
 Update-ServiceConventions
-Repair-SyntaxErrors
+Fix-SyntaxErrors
 
 if (-not $DryRun) {
     Test-BuildConfiguration

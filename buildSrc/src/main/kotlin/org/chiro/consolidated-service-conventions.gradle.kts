@@ -1,6 +1,6 @@
 // Consolidated service-specific conventions
 // For the 5 main consolidated services with multiple modules
-// Maintains consistent REST + Kotlin serialization + Jackson pattern
+// HYBRID SERIALIZATION: Kotlin + Jackson for maximum compatibility and performance
 
 plugins {
     id("service-conventions")
@@ -24,13 +24,16 @@ dependencies {
     // Email and notifications
     implementation("io.quarkus:quarkus-mailer")
     
-    // WebSocket support for real-time features (uses Jackson serialization)
+    // WebSocket support for real-time features (supports both serializers)
     implementation("io.quarkus:quarkus-websockets")
     
+    // External integrations (Jackson for compatibility)
+    implementation("io.quarkus:quarkus-rest-client-reactive-jackson") // External APIs
+    
     // Enhanced testing for consolidated services
-    testImplementation("io.quarkus:quarkus-test-artemis")
-    testImplementation("io.quarkus:quarkus-test-security")
-    testImplementation("io.quarkus:quarkus-test-kafka-companion")
+    testImplementation("io.quarkus:quarkus-test-h2") // In-memory testing
+    testImplementation("org.testcontainers:postgresql") // Integration testing
+    testImplementation("org.testcontainers:junit-jupiter")
 }
 
 // Group configuration

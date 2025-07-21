@@ -1,6 +1,8 @@
 // Common conventions for Chiro ERP consolidated services
 // Aligned with reference project: https://github.com/olwalgeorge/erp/blob/main/build.gradle.kts
-// Focus: REST with Kotlin serialization, ORM, and Jackson for external serialization
+// HYBRID SERIALIZATION STRATEGY (Enterprise Best Practice):
+// - Kotlin Serialization: Internal APIs (type-safe, compile-time validation)
+// - Jackson: External APIs (ecosystem compatibility, enterprise integrations)
 
 plugins {
     kotlin("jvm")
@@ -26,10 +28,10 @@ dependencies {
     implementation("io.quarkus:quarkus-kotlin")
     implementation("io.quarkus:quarkus-arc") // CDI container (from reference)
     
-    // REST layer (enhanced from reference with Kotlin serialization)
-    implementation("io.quarkus:quarkus-rest") // Main REST (from reference)
+    // HYBRID REST SERIALIZATION STRATEGY
+    implementation("io.quarkus:quarkus-rest") // Main REST framework
     implementation("io.quarkus:quarkus-rest-kotlin-serialization") // Kotlin serialization for internal APIs
-    implementation("io.quarkus:quarkus-rest-jackson") // Jackson for external integrations (from reference)
+    implementation("io.quarkus:quarkus-rest-jackson") // Jackson for external integrations & legacy compatibility
     
     // Database layer (from reference + Kotlin Panache)
     implementation("io.quarkus:quarkus-hibernate-orm") // Core ORM (from reference)
