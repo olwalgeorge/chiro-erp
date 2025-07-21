@@ -154,7 +154,7 @@ function Test-GradleSyntax {
     }
     
     try {
-        $null = & ./gradlew help --quiet 2>&1
+        & ./gradlew help --quiet *>$null
         if ($LASTEXITCODE -eq 0) {
             Write-Status "Gradle syntax valid" "OK"
         }
