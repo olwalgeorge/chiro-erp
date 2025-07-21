@@ -12,7 +12,8 @@ dependencies {
     implementation("io.quarkus:quarkus-kafka-client")
     
     // Service mesh and inter-service communication
-    implementation("io.quarkus:quarkus-rest-client-reactive-kotlin-serialization") // Kotlin serialization for internal APIs
+    implementation("io.quarkus:quarkus-rest-client-reactive")
+    implementation("io.quarkus:quarkus-rest-client-reactive-jackson") // Jackson for external service calls
     
     // Advanced persistence features
     implementation("io.quarkus:quarkus-flyway")
@@ -34,4 +35,3 @@ dependencies {
     testImplementation("org.testcontainers:postgresql") // Integration testing
     testImplementation("org.testcontainers:junit-jupiter")
 }
-

@@ -1,6 +1,6 @@
 # Validate Dependencies Setup Script
 # Checks consistency with GitHub reference project: https://github.com/olwalgeorge/erp
-# Validates REST + Kotlin serialization + ORM + Jackson for external serialization pattern
+# Validates HYBRID serialization pattern: Kotlin + Jackson for enterprise best practices
 
 Write-Host "🔍 Validating Chiro ERP Dependencies Setup..." -ForegroundColor Cyan
 Write-Host "Reference: https://github.com/olwalgeorge/erp" -ForegroundColor Gray
@@ -254,44 +254,60 @@ function Test-QualityConvention {
 }
 
 function Test-SerializationPattern {
-    Write-Host "`n🔄 Checking serialization pattern..." -ForegroundColor Yellow
-    
+    Write-Host "`n🔄 Checking HYBRID serialization pattern..." -ForegroundColor Yellow
+
     $files = @(
         "buildSrc\src\main\kotlin\org\chiro\common-conventions.gradle.kts",
         "buildSrc\src\main\kotlin\org\chiro\service-conventions.gradle.kts"
     )
-    
+
     $hasKotlinSerialization = $false
     $hasJackson = $false
-    
+    $hasHybridRestClient = $false
+
     foreach ($file in $files) {
         if (Test-Path $file) {
             $content = Get-Content $file -Raw
             if ($content -match "quarkus-rest-kotlin-serialization") {
                 $hasKotlinSerialization = $true
             }
-            if ($content -match "quarkus-rest-jackson|rest-client-reactive-jackson") {
+            if ($content -match "quarkus-rest-jackson") {
                 $hasJackson = $true
+            }
+            if ($content -match "quarkus-rest-client-reactive-kotlin-serialization" -and $content -match "quarkus-rest-client-reactive-jackson") {
+                $hasHybridRestClient = $true
             }
         }
     }
-    
+
     if ($hasKotlinSerialization) {
         Write-ValidationResult "Kotlin serialization for internal APIs" "PASS"
     }
     else {
         Write-ValidationResult "Kotlin serialization for internal APIs" "FAIL" "Missing quarkus-rest-kotlin-serialization"
     }
-    
+
     if ($hasJackson) {
-        Write-ValidationResult "Jackson for external serialization" "PASS"
+        Write-ValidationResult "Jackson for external APIs" "PASS"
     }
     else {
-        Write-ValidationResult "Jackson for external serialization" "FAIL" "Missing Jackson dependencies"
+        Write-ValidationResult "Jackson for external APIs" "FAIL" "Missing Jackson dependencies for external integrations"
     }
-}
-
-function Test-BuildFile {
+    
+    if ($hasHybridRestClient) {
+        Write-ValidationResult "Hybrid REST client configuration" "PASS"
+    }
+    else {
+        Write-ValidationResult "Hybrid REST client configuration" "WARN" "Consider adding both Kotlin and Jackson REST clients"
+    }
+    
+    if ($hasKotlinSerialization -and $hasJackson) {
+        Write-ValidationResult "HYBRID serialization strategy" "PASS" "Best practice: Type-safe internal + Compatible external"
+    }
+    else {
+        Write-ValidationResult "HYBRID serialization strategy" "FAIL" "Missing components for optimal enterprise setup"
+    }
+}function Test-BuildFile {
     Write-Host "`n🏗️ Checking build files syntax..." -ForegroundColor Yellow
     
     try {
@@ -371,11 +387,12 @@ function Show-Summary {
         }
     }
     
-    Write-Host "`n📋 DEPENDENCY PATTERN VALIDATION:" -ForegroundColor Cyan
-    Write-Host "   ✅ REST with Kotlin serialization (internal)" -ForegroundColor Green
-    Write-Host "   ✅ Jackson for external serialization" -ForegroundColor Green
+    Write-Host "`n📋 HYBRID SERIALIZATION PATTERN VALIDATION:" -ForegroundColor Cyan
+    Write-Host "   ✅ Kotlin Serialization (internal APIs - type-safe)" -ForegroundColor Green
+    Write-Host "   ✅ Jackson (external APIs - ecosystem compatibility)" -ForegroundColor Green
     Write-Host "   ✅ Hibernate ORM with Kotlin Panache" -ForegroundColor Green
     Write-Host "   ✅ Quarkus BOM version management" -ForegroundColor Green
+    Write-Host "   📋 ENTERPRISE BENEFITS: Type safety + Compatibility" -ForegroundColor Cyan
     
     if ($Script:TotalIssues -gt 0) {
         Write-Host "`n💡 Run with -FixIssues to attempt automatic fixes" -ForegroundColor Cyan

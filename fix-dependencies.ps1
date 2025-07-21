@@ -1,6 +1,7 @@
 # Fix Dependencies Issues Script
 # Automatically fixes common dependency setup issues
 # Companion to validate-dependencies.ps1
+# HYBRID SERIALIZATION STRATEGY: Kotlin + Jackson for enterprise best practices
 
 param(
     [switch]$DryRun,
@@ -117,16 +118,18 @@ function Update-CommonConvention {
     if ($content -notmatch "quarkus-rest-kotlin-serialization") {
         Invoke-Fix "Add quarkus-rest-kotlin-serialization dependency" {
             $restPattern = 'implementation\("io\.quarkus:quarkus-rest"\)[^\r\n]*'
-            $replacement = 'implementation("io.quarkus:quarkus-rest") // Main REST' + "`n" + '    implementation("io.quarkus:quarkus-rest-kotlin-serialization") // Kotlin serialization for all REST'
+            $replacement = 'implementation("io.quarkus:quarkus-rest") // Main REST' + "`n" + '    implementation("io.quarkus:quarkus-rest-kotlin-serialization") // Kotlin serialization for internal APIs'
             $newContent = $content -replace $restPattern, $replacement
             Set-Content $file $newContent -Encoding UTF8
         } $file
     }
     
-    # Remove Jackson dependencies (we're using only Kotlin serialization)
-    if ($content -match "quarkus-rest-jackson") {
-        Invoke-Fix "Remove Jackson REST dependency (using only Kotlin serialization)" {
-            $newContent = $content -replace '    implementation\("io\.quarkus:quarkus-rest-jackson"\)[^\r\n]*[\r\n]*', ''
+    # Ensure Jackson is present for external APIs (HYBRID APPROACH)
+    if ($content -notmatch "quarkus-rest-jackson") {
+        Invoke-Fix "Add Jackson REST dependency for external APIs" {
+            $kotlinSerializationPattern = 'implementation\("io\.quarkus:quarkus-rest-kotlin-serialization"\)[^\r\n]*'
+            $replacement = 'implementation("io.quarkus:quarkus-rest-kotlin-serialization") // Kotlin serialization for internal APIs' + "`n" + '    implementation("io.quarkus:quarkus-rest-jackson") // Jackson for external integrations'
+            $newContent = $content -replace $kotlinSerializationPattern, $replacement
             Set-Content $file $newContent -Encoding UTF8
         } $file
     }
@@ -143,25 +146,27 @@ function Update-ServiceConvention {
     
     $content = Get-Content $file -Raw
     
-    # Replace old REST client with Kotlin serialization version
+    # Replace old REST client with hybrid approach
     if ($content -match "quarkus-rest-client-reactive" -and $content -notmatch "quarkus-rest-client-reactive-kotlin-serialization") {
-        Invoke-Fix "Replace REST client with Kotlin serialization version" {
-            $newContent = $content -replace 'implementation\("io\.quarkus:quarkus-rest-client-reactive"\)', 'implementation("io.quarkus:quarkus-rest-client-reactive-kotlin-serialization") // Kotlin serialization for all REST clients'
+        Invoke-Fix "Add Kotlin serialization REST client" {
+            $newContent = $content -replace 'implementation\("io\.quarkus:quarkus-rest-client-reactive"\)', 'implementation("io.quarkus:quarkus-rest-client-reactive") // Base REST client' + "`n" + '    implementation("io.quarkus:quarkus-rest-client-reactive-kotlin-serialization") // Internal service calls'
             Set-Content $file $newContent -Encoding UTF8
         } $file
     }
     
-    # Remove any Jackson REST client dependencies (we're using only Kotlin serialization)
-    if ($content -match "quarkus-rest-client-reactive-jackson") {
-        Invoke-Fix "Remove Jackson REST client (using only Kotlin serialization)" {
-            $newContent = $content -replace '    implementation\("io\.quarkus:quarkus-rest-client-reactive-jackson"\)[^\r\n]*[\r\n]*', ''
+    # Ensure Jackson REST client is present for external APIs
+    if ($content -notmatch "quarkus-rest-client-reactive-jackson") {
+        Invoke-Fix "Add Jackson REST client for external APIs" {
+            $kotlinClientPattern = 'implementation\("io\.quarkus:quarkus-rest-client-reactive-kotlin-serialization"\)[^\r\n]*'
+            $replacement = 'implementation("io.quarkus:quarkus-rest-client-reactive-kotlin-serialization") // Internal service calls' + "`n" + '    implementation("io.quarkus:quarkus-rest-client-reactive-jackson") // External service integrations'
+            $newContent = $content -replace $kotlinClientPattern, $replacement
             Set-Content $file $newContent -Encoding UTF8
         } $file
     }
 }
 
-function Convert-AllRestToKotlinSerialization {
-    Write-Host "`n🔄 Converting all REST to use Kotlin serialization only..." -ForegroundColor Cyan
+function Convert-AllRestToHybridSerialization {
+    Write-Host "`n🔄 Converting all REST to use HYBRID serialization (Kotlin + Jackson)..." -ForegroundColor Cyan
     
     $files = @(
         "buildSrc\src\main\kotlin\org\chiro\common-conventions.gradle.kts",
@@ -173,28 +178,31 @@ function Convert-AllRestToKotlinSerialization {
         if (Test-Path $file) {
             $content = Get-Content $file -Raw
             
-            # Replace Jackson REST dependencies with Kotlin serialization
-            if ($content -match "quarkus-rest-jackson") {
-                Invoke-Fix "Remove Jackson REST from $(Split-Path $file -Leaf)" {
-                    $newContent = $content -replace '    implementation\("io\.quarkus:quarkus-rest-jackson"\)[^\r\n]*[\r\n]*', ''
-                    Set-Content $file $newContent -Encoding UTF8
-                } $file
-            }
-            
-            # Replace Jackson REST client with Kotlin serialization
-            if ($content -match "quarkus-rest-client-reactive-jackson") {
-                Invoke-Fix "Replace Jackson REST client with Kotlin serialization in $(Split-Path $file -Leaf)" {
-                    $newContent = $content -replace 'implementation\("io\.quarkus:quarkus-rest-client-reactive-jackson"\)[^\r\n]*', 'implementation("io.quarkus:quarkus-rest-client-reactive-kotlin-serialization") // Kotlin serialization for all REST clients'
-                    Set-Content $file $newContent -Encoding UTF8
-                } $file
-            }
-            
-            # Add Kotlin serialization if missing
-            if ($content -match "quarkus-rest" -and $content -notmatch "quarkus-rest-kotlin-serialization") {
+            # Ensure both Kotlin serialization AND Jackson are present
+            if ($content -notmatch "quarkus-rest-kotlin-serialization") {
                 Invoke-Fix "Add Kotlin serialization REST to $(Split-Path $file -Leaf)" {
                     $restPattern = '(implementation\("io\.quarkus:quarkus-rest"\)[^\r\n]*)'
-                    $replacement = '$1' + "`n" + '    implementation("io.quarkus:quarkus-rest-kotlin-serialization") // Kotlin serialization for all REST'
+                    $replacement = '$1' + "`n" + '    implementation("io.quarkus:quarkus-rest-kotlin-serialization") // Kotlin serialization for internal APIs'
                     $newContent = $content -replace $restPattern, $replacement
+                    Set-Content $file $newContent -Encoding UTF8
+                } $file
+            }
+            
+            if ($content -notmatch "quarkus-rest-jackson") {
+                Invoke-Fix "Add Jackson REST to $(Split-Path $file -Leaf)" {
+                    $kotlinSerializationPattern = '(implementation\("io\.quarkus:quarkus-rest-kotlin-serialization"\)[^\r\n]*)'
+                    $replacement = '$1' + "`n" + '    implementation("io.quarkus:quarkus-rest-jackson") // Jackson for external integrations'
+                    $newContent = $content -replace $kotlinSerializationPattern, $replacement
+                    Set-Content $file $newContent -Encoding UTF8
+                } $file
+            }
+            
+            # Ensure hybrid REST client approach
+            if ($content -match "quarkus-rest-client-reactive-kotlin-serialization" -and $content -notmatch "quarkus-rest-client-reactive-jackson") {
+                Invoke-Fix "Add Jackson REST client to $(Split-Path $file -Leaf)" {
+                    $kotlinClientPattern = '(implementation\("io\.quarkus:quarkus-rest-client-reactive-kotlin-serialization"\)[^\r\n]*)'
+                    $replacement = '$1' + "`n" + '    implementation("io.quarkus:quarkus-rest-client-reactive-jackson") // External service integrations'
+                    $newContent = $content -replace $kotlinClientPattern, $replacement
                     Set-Content $file $newContent -Encoding UTF8
                 } $file
             }
@@ -282,28 +290,43 @@ function Repair-SyntaxError {
 }
 
 function Test-Fix {
-    Write-Host "`n✅ Validating fixes..." -ForegroundColor Cyan
+    Write-Host "`n✅ Validating HYBRID serialization setup..." -ForegroundColor Cyan
     
-    # Check that we're using only Kotlin serialization
+    # Check that we're using BOTH Kotlin serialization AND Jackson
     $files = @(
         "buildSrc\src\main\kotlin\org\chiro\common-conventions.gradle.kts",
         "buildSrc\src\main\kotlin\org\chiro\service-conventions.gradle.kts",
         "buildSrc\src\main\kotlin\org\chiro\consolidated-service-conventions.gradle.kts"
     )
     
+    $kotlinSerializationFound = $false
     $jacksonFound = $false
+    
     foreach ($file in $files) {
         if (Test-Path $file) {
             $content = Get-Content $file -Raw
-            if ($content -match "jackson" -and $content -notmatch "//.*jackson") {
-                Write-Host "   ⚠️  Jackson dependency still found in $(Split-Path $file -Leaf)" -ForegroundColor Yellow
+            if ($content -match "quarkus-rest-kotlin-serialization") {
+                $kotlinSerializationFound = $true
+            }
+            if ($content -match "quarkus-rest-jackson" -and $content -notmatch "//.*jackson") {
                 $jacksonFound = $true
             }
         }
     }
     
-    if (-not $jacksonFound) {
-        Write-Host "   ✅ All REST dependencies use Kotlin serialization only" -ForegroundColor Green
+    if ($kotlinSerializationFound -and $jacksonFound) {
+        Write-Host "   ✅ HYBRID serialization configured correctly" -ForegroundColor Green
+        Write-Host "   📋 Kotlin Serialization: Internal APIs (type-safe)" -ForegroundColor Cyan
+        Write-Host "   📋 Jackson: External APIs (ecosystem compatibility)" -ForegroundColor Cyan
+    }
+    elseif ($kotlinSerializationFound -and -not $jacksonFound) {
+        Write-Host "   ⚠️  Only Kotlin serialization found - missing Jackson for external APIs" -ForegroundColor Yellow
+    }
+    elseif (-not $kotlinSerializationFound -and $jacksonFound) {
+        Write-Host "   ⚠️  Only Jackson found - missing Kotlin serialization for internal APIs" -ForegroundColor Yellow
+    }
+    else {
+        Write-Host "   ❌ Neither serialization framework found" -ForegroundColor Red
     }
     
     Write-Host "   ✅ Configuration fixes applied successfully" -ForegroundColor Green
@@ -333,7 +356,7 @@ function Show-FixSummary {
 
 # Main execution
 if (-not $Force) {
-    Write-Host "📋 This will modify your build files to use ONLY Kotlin serialization for REST. Continue? (y/n): " -NoNewline -ForegroundColor Yellow
+    Write-Host "📋 This will modify your build files to use HYBRID serialization (Kotlin + Jackson). Continue? (y/n): " -NoNewline -ForegroundColor Yellow
     $confirm = Read-Host
     if ($confirm -ne 'y' -and $confirm -ne 'Y') {
         Write-Host "❌ Cancelled by user" -ForegroundColor Red
@@ -341,13 +364,13 @@ if (-not $Force) {
     }
 }
 
-Write-Host "`n🚀 Starting automatic fixes..." -ForegroundColor Green
+Write-Host "`n🚀 Starting automatic fixes for HYBRID serialization..." -ForegroundColor Green
 
 Update-GradleProperty
 Update-BuildSrcBuild
 Update-CommonConvention
 Update-ServiceConvention
-Convert-AllRestToKotlinSerialization
+Convert-AllRestToHybridSerialization
 Repair-SyntaxError
 
 if (-not $DryRun) {

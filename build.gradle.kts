@@ -11,7 +11,7 @@ repositories {
 }
 
 dependencies {
-    implementation(enforcedPlatform("${quarkusPlatformGroupId}:${quarkusPlatformArtifactId}:${quarkusPlatformVersion}"))
+    implementation(enforcedPlatform("$quarkusPlatformGroupId:$quarkusPlatformArtifactId:$quarkusPlatformVersion"))
     
     // Core Quarkus with Kotlin
     implementation("io.quarkus:quarkus-kotlin")
