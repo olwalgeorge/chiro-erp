@@ -97,7 +97,8 @@ file.encoding=UTF-8
         Invoke-Fix "Update Kotlin to version 1.9.25" {
             if ($content -match "kotlinVersion\s*=") {
                 $newContent = $content -replace "kotlinVersion\s*=\s*[\d\.]+", "kotlinVersion=1.9.25"
-            } else {
+            }
+            else {
                 $newContent = $content + "`nkotlinVersion=1.9.25"
             }
             Set-Content $propsFile $newContent -Encoding UTF8
@@ -187,6 +188,81 @@ function Update-CommonConventions {
             $newContent = $content -replace $kotlinPattern, $replacement
             Set-Content $file $newContent -Encoding UTF8
         } $file
+    }
+}
+
+function Update-JavaVersion {
+    Write-Host "`n☕ Checking Java 21 configuration..." -ForegroundColor Cyan
+    
+    $buildFiles = @(
+        "buildSrc\src\main\kotlin\org\chiro\common-conventions.gradle.kts",
+        "buildSrc\src\main\kotlin\org\chiro\service-conventions.gradle.kts",
+        "buildSrc\src\main\kotlin\org\chiro\consolidated-service-conventions.gradle.kts"
+    )
+    
+    foreach ($file in $buildFiles) {
+        if (Test-Path $file) {
+            $content = Get-Content $file -Raw
+            $fileName = Split-Path $file -Leaf
+            
+            # Fix Java version from 17 to 21
+            if ($content -match "JavaVersion\.VERSION_17") {
+                Invoke-Fix "Update Java version to 21 in $fileName" {
+                    $newContent = $content -replace "JavaVersion\.VERSION_17", "JavaVersion.VERSION_21"
+                    Set-Content $file $newContent -Encoding UTF8
+                } $file
+            }
+            
+            # Fix JVM target from 17 to 21
+            if ($content -match 'jvmTarget = "17"') {
+                Invoke-Fix "Update JVM target to 21 in $fileName" {
+                    $newContent = $content -replace 'jvmTarget = "17"', 'jvmTarget = "21"'
+                    Set-Content $file $newContent -Encoding UTF8
+                } $file
+            }
+            
+            # Ensure jvmToolchain is set to 21
+            if ($content -match "jvmToolchain" -and $content -notmatch "jvmToolchain\(21\)") {
+                Invoke-Fix "Update JVM toolchain to 21 in $fileName" {
+                    $newContent = $content -replace "jvmToolchain\(\d+\)", "jvmToolchain(21)"
+                    Set-Content $file $newContent -Encoding UTF8
+                } $file
+            }
+            
+            # Add jvmToolchain if missing
+            if ($content -notmatch "jvmToolchain" -and $content -match "kotlin\(" -and $fileName -eq "common-conventions.gradle.kts") {
+                Invoke-Fix "Add JVM toolchain 21 configuration in $fileName" {
+                    $kotlinBlock = $content -replace '(kotlin\s*\{[^}]*)', '$1' + "`n" + '    jvmToolchain(21)'
+                    Set-Content $file $kotlinBlock -Encoding UTF8
+                } $file
+            }
+        }
+    }
+    
+    # Check individual service build files
+    $serviceFiles = Get-ChildItem -Path "consolidated-services" -Recurse -Name "build.gradle.kts" -ErrorAction SilentlyContinue
+    foreach ($serviceFile in $serviceFiles) {
+        $fullPath = "consolidated-services\$serviceFile"
+        if (Test-Path $fullPath) {
+            $content = Get-Content $fullPath -Raw
+            $serviceName = Split-Path (Split-Path $fullPath -Parent) -Leaf
+            
+            # Fix Java version in service build files
+            if ($content -match "JavaVersion\.VERSION_17") {
+                Invoke-Fix "Update Java version to 21 in $serviceName service" {
+                    $newContent = $content -replace "JavaVersion\.VERSION_17", "JavaVersion.VERSION_21"
+                    Set-Content $fullPath $newContent -Encoding UTF8
+                } $fullPath
+            }
+            
+            # Fix JVM target in service build files
+            if ($content -match 'jvmTarget = "17"') {
+                Invoke-Fix "Update JVM target to 21 in $serviceName service" {
+                    $newContent = $content -replace 'jvmTarget = "17"', 'jvmTarget = "21"'
+                    Set-Content $fullPath $newContent -Encoding UTF8
+                } $fullPath
+            }
+        }
     }
 }
 
@@ -291,7 +367,8 @@ function Test-BuildConfiguration {
         
         if ($LASTEXITCODE -eq 0) {
             Write-Host "   ✅ Gradle configuration is valid" -ForegroundColor Green
-        } else {
+        }
+        else {
             Write-Host "   ❌ Gradle configuration issues:" -ForegroundColor Red
             $result | ForEach-Object { Write-Host "     $_" -ForegroundColor Red }
         }
@@ -339,6 +416,7 @@ Update-GradleProperties
 Update-BuildSrc  
 Update-CommonConventions
 Update-ServiceConventions
+Update-JavaVersion
 Repair-SyntaxErrors
 
 if (-not $DryRun) {

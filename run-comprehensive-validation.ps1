@@ -59,7 +59,7 @@ function Write-Result {
         "FAIL" { "❌" }
         "WARN" { "⚠️ " }
         "INFO" { "ℹ️ " }
-        "FIX"  { "🔧" }
+        "FIX" { "🔧" }
         default { "📋" }
     }
     $color = switch ($Status) {
@@ -67,7 +67,7 @@ function Write-Result {
         "FAIL" { "Red" }
         "WARN" { "Yellow" }
         "INFO" { "Cyan" }
-        "FIX"  { "Magenta" }
+        "FIX" { "Magenta" }
         default { "Gray" }
     }
     Write-Host "$icon $Message" -ForegroundColor $color
@@ -77,6 +77,7 @@ function Write-Result {
 $Script:TotalIssues = 0
 $Script:TotalFixes = 0
 $Script:TotalPassed = 0
+$Script:StepResults = @()
 
 function Invoke-ScriptWithLogging {
     param(
@@ -112,23 +113,33 @@ function Invoke-ScriptWithLogging {
         if ($IsFixScript) {
             $Script:TotalFixes += $fixCount
             Write-Result "$StepName completed - Applied $fixCount fixes" "FIX"
-        } else {
+        }
+        else {
             $Script:TotalPassed += $passCount
             $Script:TotalIssues += $failCount
             
             if ($failCount -eq 0) {
                 Write-Result "$StepName passed - $passCount checks OK" "PASS"
-            } else {
+            }
+            else {
                 Write-Result "$StepName found issues - $failCount failures, $warnCount warnings" "WARN"
             }
         }
         
-        return $exitCode -eq 0 -or $exitCode -eq $null
+        return $exitCode -eq 0 -or $null -eq $exitCode
     }
     catch {
         Write-Result "Failed to execute $StepName`: $($_.Exception.Message)" "FAIL"
         $Script:TotalIssues++
         return $false
+    }
+    finally {
+        # Record step result for final summary
+        $Script:StepResults += @{
+            Name        = $StepName
+            Success     = ($exitCode -eq 0 -or $null -eq $exitCode)
+            IsFixScript = $IsFixScript
+        }
     }
 }
 
@@ -145,7 +156,8 @@ function Test-Prerequisites {
     foreach ($prereq in $prerequisites) {
         if (& $prereq.Test) {
             Write-Result "$($prereq.Name) available" "PASS"
-        } else {
+        }
+        else {
             Write-Result "$($prereq.Name) missing or incompatible" "FAIL"
             $allPrereqsMet = $false
         }
@@ -162,13 +174,25 @@ function Show-Summary {
     Write-Host "   ❌ Issues: $Script:TotalIssues" -ForegroundColor Red
     Write-Host "   🔧 Fixes Applied: $Script:TotalFixes" -ForegroundColor Magenta
     
+    # Show individual step results
+    if ($Script:StepResults.Count -gt 0) {
+        Write-Host "`n📋 Step Results:" -ForegroundColor Cyan
+        foreach ($step in $Script:StepResults) {
+            $icon = if ($step.Success) { "✅" } else { "❌" }
+            $color = if ($step.Success) { "Green" } else { "Red" }
+            Write-Host "   $icon $($step.Name)" -ForegroundColor $color
+        }
+    }
+    
     if ($Script:TotalIssues -eq 0) {
         Write-Host "`n🎉 All validations passed! Project structure is consistent." -ForegroundColor Green
         Write-Host "   ✨ Ready for development and deployment" -ForegroundColor Cyan
-    } elseif ($Script:TotalIssues -le 5) {
+    }
+    elseif ($Script:TotalIssues -le 5) {
         Write-Host "`n⚠️  Some issues found, but project is mostly healthy." -ForegroundColor Yellow
         Write-Host "   🔧 Consider running fix scripts for remaining issues" -ForegroundColor Cyan
-    } else {
+    }
+    else {
         Write-Host "`n❌ Significant issues detected. Review and fix before proceeding." -ForegroundColor Red
         Write-Host "   🛠️  Run individual fix scripts or use -Force to attempt auto-fixes" -ForegroundColor Yellow
     }
@@ -213,7 +237,7 @@ $structureArgs = @()
 if ($Detailed) { $structureArgs += "-Detailed" }
 if (-not $SkipFixes -and -not $DryRun) { $structureArgs += "-Fix" }
 
-$structureOk = Invoke-ScriptWithLogging -ScriptPath ".\verify-service-structure-consistency.ps1" -Arguments $structureArgs -StepName "Structure validation"
+Invoke-ScriptWithLogging -ScriptPath ".\verify-service-structure-consistency.ps1" -Arguments $structureArgs -StepName "Structure validation" | Out-Null
 
 # Step 2: Dependency Standardization (if not skipping fixes)
 if (-not $SkipFixes) {
@@ -222,7 +246,7 @@ if (-not $SkipFixes) {
     if ($DryRun) { $standardizeArgs += "-DryRun" }
     if ($Force) { $standardizeArgs += "-Force" }
     
-    $standardizeOk = Invoke-ScriptWithLogging -ScriptPath ".\standardize-dependencies.ps1" -Arguments $standardizeArgs -StepName "Dependency standardization" -IsFixScript $true
+    Invoke-ScriptWithLogging -ScriptPath ".\standardize-dependencies.ps1" -Arguments $standardizeArgs -StepName "Dependency standardization" -IsFixScript $true | Out-Null
     
     # Step 3: Dependency Fixes
     Write-Step "Dependency Fixes" 3 $totalSteps
@@ -230,7 +254,7 @@ if (-not $SkipFixes) {
     if ($DryRun) { $fixArgs += "-DryRun" }
     if ($Force) { $fixArgs += "-Force" }
     
-    $fixOk = Invoke-ScriptWithLogging -ScriptPath ".\fix-dependencies.ps1" -Arguments $fixArgs -StepName "Dependency fixes" -IsFixScript $true
+    Invoke-ScriptWithLogging -ScriptPath ".\fix-dependencies.ps1" -Arguments $fixArgs -StepName "Dependency fixes" -IsFixScript $true | Out-Null
 }
 
 # Step 4: Dependency Validation
@@ -239,7 +263,7 @@ Write-Step "Dependency Validation" $stepNum $totalSteps
 $validateArgs = @()
 if ($Detailed) { $validateArgs += "-Detailed" }
 
-$dependencyOk = Invoke-ScriptWithLogging -ScriptPath ".\validate-dependencies.ps1" -Arguments $validateArgs -StepName "Dependency validation"
+Invoke-ScriptWithLogging -ScriptPath ".\validate-dependencies.ps1" -Arguments $validateArgs -StepName "Dependency validation" | Out-Null
 
 # Step 5: Final Build Test
 $stepNum = if ($SkipFixes) { 3 } else { 5 }
@@ -247,7 +271,8 @@ Write-Step "Build Verification" $stepNum $totalSteps
 
 if ($DryRun) {
     Write-Result "Skipping build test in dry run mode" "INFO"
-} else {
+}
+else {
     try {
         Write-Host "   Testing Gradle build..." -ForegroundColor Gray
         $buildOutput = & .\gradlew.bat projects 2>&1
@@ -255,7 +280,8 @@ if ($DryRun) {
         if ($LASTEXITCODE -eq 0) {
             Write-Result "Gradle build system working" "PASS"
             $Script:TotalPassed++
-        } else {
+        }
+        else {
             Write-Result "Gradle build issues detected" "FAIL"
             $Script:TotalIssues++
             if ($Detailed) {

@@ -253,6 +253,82 @@ function Test-QualityConvention {
     }
 }
 
+function Test-JavaVersion {
+    Write-Host "`n☕ Checking Java 21 compliance..." -ForegroundColor Yellow
+    
+    # Check buildSrc conventions
+    $conventionFiles = @(
+        "buildSrc\src\main\kotlin\org\chiro\common-conventions.gradle.kts",
+        "buildSrc\src\main\kotlin\org\chiro\service-conventions.gradle.kts",
+        "buildSrc\src\main\kotlin\org\chiro\consolidated-service-conventions.gradle.kts"
+    )
+    
+    $javaVersionCompliant = $true
+    
+    foreach ($file in $conventionFiles) {
+        if (Test-Path $file) {
+            $content = Get-Content $file -Raw
+            $fileName = Split-Path $file -Leaf
+            
+            # Check for Java 21 version
+            if ($content -match "JavaVersion\.VERSION_21") {
+                Write-ValidationResult "Java 21 version in $fileName" "PASS"
+            } elseif ($content -match "JavaVersion\.VERSION_17") {
+                Write-ValidationResult "Java 21 version in $fileName" "FAIL" "Still using Java 17 - should be Java 21 for GraalVM 21"
+                $javaVersionCompliant = $false
+            }
+            
+            # Check JVM target
+            if ($content -match 'jvmTarget = "21"') {
+                Write-ValidationResult "JVM target 21 in $fileName" "PASS"
+            } elseif ($content -match 'jvmTarget = "17"') {
+                Write-ValidationResult "JVM target 21 in $fileName" "FAIL" "JVM target should be 21 for GraalVM 21"
+                $javaVersionCompliant = $false
+            }
+            
+            # Check JVM toolchain
+            if ($content -match "jvmToolchain\(21\)") {
+                Write-ValidationResult "JVM toolchain 21 in $fileName" "PASS"
+            } elseif ($content -match "jvmToolchain\(\d+\)") {
+                Write-ValidationResult "JVM toolchain 21 in $fileName" "FAIL" "JVM toolchain should be 21"
+                $javaVersionCompliant = $false
+            }
+        }
+    }
+    
+    # Check individual service build files
+    $serviceFiles = Get-ChildItem -Path "consolidated-services" -Recurse -Name "build.gradle.kts" -ErrorAction SilentlyContinue
+    foreach ($serviceFile in $serviceFiles) {
+        $fullPath = "consolidated-services\$serviceFile"
+        if (Test-Path $fullPath) {
+            $content = Get-Content $fullPath -Raw
+            $serviceName = Split-Path (Split-Path $fullPath -Parent) -Leaf
+            
+            # Check Java version in service files
+            if ($content -match "JavaVersion\.VERSION_21") {
+                Write-ValidationResult "Java 21 in $serviceName service" "PASS"
+            } elseif ($content -match "JavaVersion\.VERSION_17") {
+                Write-ValidationResult "Java 21 in $serviceName service" "FAIL" "Service using Java 17 instead of 21"
+                $javaVersionCompliant = $false
+            }
+            
+            # Check JVM target in service files
+            if ($content -match 'jvmTarget = "21"') {
+                Write-ValidationResult "JVM target 21 in $serviceName service" "PASS"
+            } elseif ($content -match 'jvmTarget = "17"') {
+                Write-ValidationResult "JVM target 21 in $serviceName service" "FAIL" "Service JVM target should be 21"
+                $javaVersionCompliant = $false
+            }
+        }
+    }
+    
+    if ($javaVersionCompliant) {
+        Write-ValidationResult "Java 21 compliance" "PASS" "All files configured for Java 21/GraalVM 21"
+    } else {
+        Write-ValidationResult "Java 21 compliance" "FAIL" "Some files still using Java 17 - run fix-dependencies.ps1"
+    }
+}
+
 function Test-SerializationPattern {
     Write-Host "`n🔄 Checking HYBRID serialization pattern..." -ForegroundColor Yellow
 
@@ -408,6 +484,7 @@ Test-CommonConvention
 Test-ServiceConvention
 Test-ConsolidatedServiceConvention
 Test-QualityConvention
+Test-JavaVersion
 Test-SerializationPattern
 Test-BuildFile
 
