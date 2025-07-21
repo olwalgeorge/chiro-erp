@@ -42,16 +42,6 @@ dependencies {
     testImplementation("org.testcontainers:postgresql")
 }
 
-java {
-    sourceCompatibility = JavaVersion.VERSION_21
-    targetCompatibility = JavaVersion.VERSION_21
-}
-
-tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile> {
-    compilerOptions {
-        jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_21)
-        javaParameters.set(true)
-    }
 }
 
 // GraalVM Native Configuration

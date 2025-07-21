@@ -229,7 +229,7 @@ if (-not $DryRun -and -not $Force -and -not $SkipFixes) {
     }
 }
 
-$totalSteps = if ($SkipFixes) { 3 } else { 5 }
+$totalSteps = if ($SkipFixes) { 3 } else { 6 }
 
 # Step 1: Structure Validation
 Write-Step "Project Structure Validation" 1 $totalSteps
@@ -239,17 +239,27 @@ if (-not $SkipFixes -and -not $DryRun) { $structureArgs += "-Fix" }
 
 Invoke-ScriptWithLogging -ScriptPath ".\verify-service-structure-consistency.ps1" -Arguments $structureArgs -StepName "Structure validation" | Out-Null
 
-# Step 2: Dependency Standardization (if not skipping fixes)
+# Step 2: REST Convention Enforcement (if not skipping fixes)
 if (-not $SkipFixes) {
-    Write-Step "Dependency Standardization" 2 $totalSteps
+    Write-Step "REST Convention Enforcement" 2 $totalSteps
+    $restArgs = @()
+    if ($DryRun) { $restArgs += "-DryRun" }
+    if ($Force) { $restArgs += "-Force" }
+    
+    Invoke-ScriptWithLogging -ScriptPath ".\enforce-rest-conventions.ps1" -Arguments $restArgs -StepName "REST convention enforcement" -IsFixScript $true | Out-Null
+}
+
+# Step 3: Dependency Standardization (if not skipping fixes)
+if (-not $SkipFixes) {
+    Write-Step "Dependency Standardization" 3 $totalSteps
     $standardizeArgs = @()
     if ($DryRun) { $standardizeArgs += "-DryRun" }
     if ($Force) { $standardizeArgs += "-Force" }
     
     Invoke-ScriptWithLogging -ScriptPath ".\standardize-dependencies.ps1" -Arguments $standardizeArgs -StepName "Dependency standardization" -IsFixScript $true | Out-Null
     
-    # Step 3: Dependency Fixes
-    Write-Step "Dependency Fixes" 3 $totalSteps
+    # Step 4: Dependency Fixes
+    Write-Step "Dependency Fixes" 4 $totalSteps
     $fixArgs = @()
     if ($DryRun) { $fixArgs += "-DryRun" }
     if ($Force) { $fixArgs += "-Force" }
@@ -257,16 +267,16 @@ if (-not $SkipFixes) {
     Invoke-ScriptWithLogging -ScriptPath ".\fix-dependencies.ps1" -Arguments $fixArgs -StepName "Dependency fixes" -IsFixScript $true | Out-Null
 }
 
-# Step 4: Dependency Validation
-$stepNum = if ($SkipFixes) { 2 } else { 4 }
+# Step 5: Dependency Validation
+$stepNum = if ($SkipFixes) { 2 } else { 5 }
 Write-Step "Dependency Validation" $stepNum $totalSteps
 $validateArgs = @()
 if ($Detailed) { $validateArgs += "-Detailed" }
 
 Invoke-ScriptWithLogging -ScriptPath ".\validate-dependencies.ps1" -Arguments $validateArgs -StepName "Dependency validation" | Out-Null
 
-# Step 5: Final Build Test
-$stepNum = if ($SkipFixes) { 3 } else { 5 }
+# Step 6: Final Build Test
+$stepNum = if ($SkipFixes) { 3 } else { 6 }
 Write-Step "Build Verification" $stepNum $totalSteps
 
 if ($DryRun) {

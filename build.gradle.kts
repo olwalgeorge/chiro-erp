@@ -14,11 +14,9 @@ dependencies {
     implementation(enforcedPlatform("$quarkusPlatformGroupId:$quarkusPlatformArtifactId:$quarkusPlatformVersion"))
     
     // Core Quarkus with Kotlin
-    implementation("io.quarkus:quarkus-kotlin")
     implementation("io.quarkus:quarkus-arc")
     
     // REST with Kotlin Serialization (NOT Jackson)
-    implementation("io.quarkus:quarkus-rest-kotlin-serialization") 
     
     // Database - Hibernate ORM Panache with Kotlin
     implementation("io.quarkus:quarkus-hibernate-orm-panache-kotlin")
@@ -28,7 +26,6 @@ dependencies {
     implementation("io.quarkus:quarkus-container-image-docker")
     
     // Kotlin Standard Libraries
-    implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8")
     
     // Explicitly exclude Jackson to avoid conflicts
     configurations.all {
@@ -46,11 +43,6 @@ dependencies {
 
 group = "org.chiro"
 version = "1.0.0-SNAPSHOT"
-
-java {
-    sourceCompatibility = JavaVersion.VERSION_21
-    targetCompatibility = JavaVersion.VERSION_21
-}
 
 kotlin {
     jvmToolchain(21)

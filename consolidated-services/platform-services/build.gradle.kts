@@ -22,15 +22,10 @@ dependencies {
     implementation("io.quarkus:quarkus-hibernate-orm-panache-kotlin")
     implementation("io.quarkus:quarkus-hibernate-validator")
     implementation("io.quarkus:quarkus-jsonb")
-    implementation("io.quarkus:quarkus-rest-client-reactive-kotlin-serialization")
     implementation("io.quarkus:quarkus-smallrye-reactive-messaging-kafka")}:${quarkusPlatformArtifactId}:${quarkusPlatformVersion}"))
     
     // Quarkus Core
-    implementation("io.quarkus:quarkus-kotlin")
-    implementation("io.quarkus:quarkus-jackson")
     implementation("io.quarkus:quarkus-arc")
-    implementation("io.quarkus:quarkus-rest")
-    implementation("io.quarkus:quarkus-rest-kotlin-serialization")
     
     // Database
     implementation("io.quarkus:quarkus-jdbc-postgresql")
@@ -59,20 +54,12 @@ dependencies {
     testImplementation("org.testcontainers:postgresql")
 }
 
-java {
-    sourceCompatibility = JavaVersion.VERSION_21
-    targetCompatibility = JavaVersion.VERSION_21
-}
-
 tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile> {
     kotlinOptions {
         jvmTarget = "21"
         javaParameters = true
     }
 }
-
-
-
 
 // GraalVM Native Configuration
 quarkus {

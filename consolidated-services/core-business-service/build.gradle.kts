@@ -11,9 +11,7 @@ dependencies {
     // Time series data for manufacturing metrics
     implementation("io.quarkus:quarkus-micrometer")
     
-    // Additional business logic dependencies will be inherited from conventions
-    implementation("io.quarkus:quarkus-resteasy-reactive")
-    implementation("io.quarkus:quarkus-resteasy-reactive-jackson")
+    // REST and Jackson dependencies are inherited from conventions
     
     // Database
     implementation("io.quarkus:quarkus-hibernate-orm-panache-kotlin")
@@ -43,20 +41,6 @@ dependencies {
     testImplementation("org.testcontainers:junit-jupiter")
     testImplementation("org.testcontainers:postgresql")
 }
-
-java {
-    sourceCompatibility = JavaVersion.VERSION_21
-    targetCompatibility = JavaVersion.VERSION_21
-}
-
-tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile> {
-    compilerOptions {
-        jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_21)
-        javaParameters.set(true)
-    }
-}
-
-    
 
 // GraalVM Native Configuration
 quarkus {
