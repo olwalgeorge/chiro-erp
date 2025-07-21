@@ -1,24 +1,18 @@
 // Service-specific conventions for Chiro ERP consolidated services
-// Optimized for monolithic services with modular architecture
+// Extends common-conventions with additional service-specific dependencies
+// Maintains REST with Kotlin serialization and Jackson for external APIs
 
 plugins {
-    kotlin("jvm")
-    kotlin("plugin.allopen")
-    kotlin("plugin.serialization")
-    id("io.quarkus")
     id("common-conventions")
 }
 
 dependencies {
-    // Additional service-specific dependencies
-    
     // Event streaming and messaging
     implementation("io.quarkus:quarkus-smallrye-reactive-messaging-kafka")
     implementation("io.quarkus:quarkus-kafka-client")
     
     // Service mesh and inter-service communication
-    implementation("io.quarkus:quarkus-rest-client-reactive")
-    implementation("io.quarkus:quarkus-rest-client-reactive-jackson")
+    implementation("io.quarkus:quarkus-rest-client-reactive-kotlin-serialization") // Kotlin serialization for internal APIs
     
     // Advanced persistence features
     implementation("io.quarkus:quarkus-flyway")
@@ -32,57 +26,12 @@ dependencies {
     implementation("io.quarkus:quarkus-container-image-docker")
     implementation("io.quarkus:quarkus-kubernetes")
     
-    // GraphQL support for consolidated APIs
+    // GraphQL support for consolidated APIs (uses Jackson by default)
     implementation("io.quarkus:quarkus-smallrye-graphql")
     
     // Enhanced testing for modular services
-    testImplementation("io.quarkus:quarkus-test-h2")
-    testImplementation("io.quarkus:quarkus-test-security")
-    testImplementation("org.testcontainers:postgresql")
-    testImplementation("org.testcontainers:kafka")
+    testImplementation("io.quarkus:quarkus-test-h2") // In-memory testing
+    testImplementation("org.testcontainers:postgresql") // Integration testing
+    testImplementation("org.testcontainers:junit-jupiter")
 }
 
-// Enhanced testing configurations
-tasks.test {
-    useJUnitPlatform()
-    systemProperty("java.util.logging.manager", "org.jboss.logmanager.LogManager")
-    
-    // Test performance optimization
-    maxParallelForks = (Runtime.getRuntime().availableProcessors() / 2).takeIf { it > 0 } ?: 1
-    
-    testLogging {
-        events("passed", "skipped", "failed")
-        exceptionFormat = org.gradle.api.tasks.testing.logging.TestExceptionFormat.FULL
-    }
-}
-}
-
-// Enhanced JVM configuration for consolidated services
-tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile> {
-    kotlinOptions {
-        jvmTarget = "21"
-        freeCompilerArgs = listOf(
-            "-Xjsr305=strict",
-            "-Xcontext-receivers"
-        )
-    }
-}
-
-// Test configuration optimized for modular testing
-tasks.test {
-    useJUnitPlatform()
-    systemProperty("java.util.logging.manager", "org.jboss.logmanager.LogManager")
-    
-    // Increased timeouts for consolidated service testing
-    systemProperty("quarkus.test.timeout", "300")
-    
-    // Memory configuration for testing multiple modules
-    minHeapSize = "512m"
-    maxHeapSize = "2g"
-}
-}
-
-// Docker configuration for consolidated services
-tasks.named("buildDockerImage") {
-    dependsOn("build")
-}

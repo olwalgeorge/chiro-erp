@@ -8,11 +8,15 @@ dependencies {
     // Financial calculations and precision
     implementation("io.quarkus:quarkus-agroal")
     
-    // Time series data for manufacturing metrics  
+    // Time series data for manufacturing metrics
     implementation("io.quarkus:quarkus-micrometer")
     
-    // Additional business logic dependencies are inherited from conventions
-}
+    // Additional business logic dependencies will be inherited from conventions
+    // REST dependencies are inherited from consolidated-service-conventions
+    
+    // Database
+    implementation("io.quarkus:quarkus-hibernate-orm-panache-kotlin")
+    implementation("io.quarkus:quarkus-jdbc-postgresql")
     implementation("io.quarkus:quarkus-flyway")
     
     // Messaging

@@ -1,3 +1,19 @@
+// Settings configuration aligned with reference project
+// https://github.com/olwalgeorge/erp/blob/main/settings.gradle.kts
+
+pluginManagement {
+    val quarkusPluginVersion: String by settings
+    val quarkusPluginId: String by settings
+    repositories {
+        mavenCentral()
+        gradlePluginPortal()
+        mavenLocal()
+    }
+    plugins {
+        id(quarkusPluginId) version quarkusPluginVersion
+    }
+}
+
 rootProject.name = "chiro-erp"
 
 // Include original API Gateway (remains separate)
@@ -16,5 +32,3 @@ project(":consolidated-services:customer-relations-service").name = "customer-re
 project(":consolidated-services:operations-management-service").name = "operations-management-service"
 project(":consolidated-services:core-business-service").name = "core-business-service"
 project(":consolidated-services:platform-services").name = "platform-services"
-
-

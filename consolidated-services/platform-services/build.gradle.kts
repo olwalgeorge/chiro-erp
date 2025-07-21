@@ -22,18 +22,17 @@ dependencies {
     implementation("io.quarkus:quarkus-hibernate-orm-panache-kotlin")
     implementation("io.quarkus:quarkus-hibernate-validator")
     implementation("io.quarkus:quarkus-jsonb")
-    implementation("io.quarkus:quarkus-rest-client-reactive")
+    implementation("io.quarkus:quarkus-rest-client-reactive-kotlin-serialization")
     implementation("io.quarkus:quarkus-smallrye-reactive-messaging-kafka")}:${quarkusPlatformArtifactId}:${quarkusPlatformVersion}"))
     
     // Quarkus Core
     implementation("io.quarkus:quarkus-kotlin")
     implementation("io.quarkus:quarkus-jackson")
     implementation("io.quarkus:quarkus-arc")
-    implementation("io.quarkus:quarkus-resteasy-reactive")
-    implementation("io.quarkus:quarkus-resteasy-reactive-jackson")
+    implementation("io.quarkus:quarkus-rest")
+    implementation("io.quarkus:quarkus-rest-kotlin-serialization")
     
     // Database
-    implementation("io.quarkus:quarkus-hibernate-orm-panache-kotlin")
     implementation("io.quarkus:quarkus-jdbc-postgresql")
     implementation("io.quarkus:quarkus-flyway")
     
@@ -51,7 +50,6 @@ dependencies {
     implementation("io.quarkus:quarkus-security-jpa")
     
     // Validation
-    implementation("io.quarkus:quarkus-hibernate-validator")
     
     // Testing
     testImplementation("io.quarkus:quarkus-junit5")
@@ -72,5 +70,4 @@ tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile> {
         javaParameters = true
     }
 }
-
 

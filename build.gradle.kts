@@ -30,13 +30,13 @@ dependencies {
     // Kotlin Standard Libraries
     implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8")
     
-    // Explicitly exclude Jackson to avoid conflicts
+    // Explicitly exclude Jackson to avoid conflicts (using only Kotlin serialization)
     configurations.all {
         exclude(group = "com.fasterxml.jackson.core")
         exclude(group = "com.fasterxml.jackson.annotation") 
         exclude(group = "com.fasterxml.jackson.databind")
-        exclude(group = "io.quarkus", module = "quarkus-resteasy-reactive-jackson")
-        exclude(group = "io.quarkus", module = "quarkus-resteasy-jackson")
+        exclude(group = "io.quarkus", module = "quarkus-REST-reactive-jackson")
+        exclude(group = "io.quarkus", module = "quarkus-rest-jackson")
     }
     
     // Testing

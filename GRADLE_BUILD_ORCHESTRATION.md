@@ -129,8 +129,8 @@ plugins {
 }
 
 dependencies {
-    // Quarkus BOM - manages ALL versions centrally via gradle.properties
-    implementation(enforcedPlatform("${quarkusPlatformGroupId}:${quarkusPlatformArtifactId}:${quarkusPlatformVersion}"))
+    // Quarkus BOM - manages ALL versions centrally
+    implementation(enforcedPlatform("io.quarkus.platform:quarkus-bom:3.24.4"))
 
     // Core Quarkus + Kotlin
     implementation("io.quarkus:quarkus-kotlin")
@@ -147,28 +147,6 @@ dependencies {
         exclude(group = "com.fasterxml.jackson.core")
         exclude(group = "com.fasterxml.jackson.module", module = "jackson-module-kotlin")
     }
-
-    // Database layer - Hibernate ORM with Kotlin Panache
-    implementation("io.quarkus:quarkus-hibernate-orm-panache-kotlin")
-    implementation("io.quarkus:quarkus-jdbc-postgresql")
-
-    // Essential Kotlin libraries
-    implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8")
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core")
-
-    // Microservices essentials
-    implementation("io.quarkus:quarkus-smallrye-health")
-    implementation("io.quarkus:quarkus-smallrye-metrics")
-    implementation("io.quarkus:quarkus-smallrye-openapi")
-
-    // Configuration and logging
-    implementation("io.quarkus:quarkus-logging-json")
-
-    // Testing foundation
-    testImplementation("io.quarkus:quarkus-junit5")
-    testImplementation("io.rest-assured:rest-assured")
-    testImplementation("org.jetbrains.kotlin:kotlin-test-junit5")
-}
 }
 
 // Kotlin compiler configuration

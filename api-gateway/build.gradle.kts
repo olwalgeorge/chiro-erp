@@ -9,8 +9,7 @@ dependencies {
     implementation("io.quarkus:quarkus-reactive-routes")
     
     // Service Discovery & Load Balancing
-    implementation("io.quarkus:quarkus-rest-client-reactive")
-    implementation("io.quarkus:quarkus-rest-client-reactive-jackson") // For external API calls
+    implementation("io.quarkus:quarkus-rest-client-reactive-kotlin-serialization")
     
     // Security & Authentication
     implementation("io.quarkus:quarkus-security")
