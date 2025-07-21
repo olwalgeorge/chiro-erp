@@ -16,9 +16,10 @@ ARG BUILD_PROFILE=prod
 
 WORKDIR /build
 
-# Security: Create dedicated build user
-RUN addgroup -g 1000 -S builduser && \
-    adduser -u 1000 -S builduser -G builduser -h /build
+# Security: Create dedicated build user (handle existing groups/users)
+RUN (addgroup -g 1001 -S builduser || addgroup -S builduser) && \
+    (adduser -u 1001 -S builduser -G builduser -h /build || adduser -S builduser -G builduser -h /build) && \
+    chown -R builduser:builduser /build
 
 # Copy gradle wrapper and dependencies first (better caching)
 COPY --chown=builduser:builduser gradlew gradlew.bat ./
@@ -26,8 +27,8 @@ COPY --chown=builduser:builduser gradle/ ./gradle/
 COPY --chown=builduser:builduser build.gradle.kts settings.gradle.kts gradle.properties ./
 COPY --chown=builduser:builduser buildSrc/ ./buildSrc/
 
-# Make gradlew executable
-RUN chmod +x ./gradlew
+# Fix line endings and make gradlew executable
+RUN sed -i 's/\r$//' ./gradlew && chmod +x ./gradlew
 
 # Switch to build user
 USER builduser
@@ -37,7 +38,6 @@ RUN ./gradlew dependencies --no-daemon --quiet || true
 
 # Copy all consolidated services source
 COPY --chown=builduser:builduser consolidated-services/ ./consolidated-services/
-COPY --chown=builduser:builduser api-gateway/ ./api-gateway/
 
 # Validate SERVICE_NAME argument
 RUN if [ -z "$SERVICE_NAME" ]; then \
@@ -67,13 +67,14 @@ WORKDIR /app
 RUN apk update && \
     apk upgrade --available && \
     apk add --no-cache \
-    curl=8.5.0-r0 \
-    dumb-init=1.2.5-r2 \
+    curl \
+    dumb-init \
     && rm -rf /var/cache/apk/* /tmp/* /var/tmp/*
 
-# Create application user
-RUN addgroup -g 1001 -S appuser && \
-    adduser -u 1001 -S appuser -G appuser -h /app
+# Create application user (handle existing groups/users)
+RUN (addgroup -g 1001 -S appuser 2>/dev/null || true) && \
+    (adduser -u 1001 -S appuser -G appuser -h /app 2>/dev/null || true) && \
+    chown -R 1001:1001 /app
 
 # Copy built application
 COPY --from=builder --chown=appuser:appuser \
@@ -81,9 +82,9 @@ COPY --from=builder --chown=appuser:appuser \
     /app/application.jar
 
 # Health check script
-RUN echo '#!/bin/sh\ncurl -f http://localhost:${SERVICE_PORT}/q/health/ready || exit 1' > /app/healthcheck.sh && \
+RUN echo '#!/bin/sh\ncurl -f http://localhost:8080/q/health/ready || exit 1' > /app/healthcheck.sh && \
     chmod +x /app/healthcheck.sh && \
-    chown appuser:appuser /app/healthcheck.sh
+    chown -R 1001:1001 /app
 
 USER appuser
 

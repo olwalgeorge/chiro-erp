@@ -20,6 +20,7 @@
 
 # Include source code (for multi-stage builds)
 !src/
+!consolidated-services/
 
 # Exclude sensitive and unnecessary files
 .env

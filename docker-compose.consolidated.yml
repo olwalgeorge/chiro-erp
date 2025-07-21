@@ -40,7 +40,7 @@ services:
   core-business-service:
     build:
       context: .
-      dockerfile: Dockerfile.multi
+      dockerfile: Dockerfile.consolidated
       args:
         SERVICE_NAME: core-business-service
     ports:
@@ -57,7 +57,7 @@ services:
   operations-management-service:
     build:
       context: .
-      dockerfile: Dockerfile.multi
+      dockerfile: Dockerfile.consolidated
       args:
         SERVICE_NAME: operations-management-service
     ports:
@@ -74,7 +74,7 @@ services:
   customer-relations-service:
     build:
       context: .
-      dockerfile: Dockerfile.multi
+      dockerfile: Dockerfile.consolidated
       args:
         SERVICE_NAME: customer-relations-service
     ports:
@@ -91,7 +91,7 @@ services:
   platform-services:
     build:
       context: .
-      dockerfile: Dockerfile.multi
+      dockerfile: Dockerfile.consolidated
       args:
         SERVICE_NAME: platform-services
     ports:
@@ -108,7 +108,7 @@ services:
   workforce-management-service:
     build:
       context: .
-      dockerfile: Dockerfile.multi
+      dockerfile: Dockerfile.consolidated
       args:
         SERVICE_NAME: workforce-management-service
     ports:
