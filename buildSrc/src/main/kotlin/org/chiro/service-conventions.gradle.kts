@@ -1,84 +1,88 @@
-// Service-specific conventions for Chiro ERP microservices
-// Complete service setup with all dependencies
+// Service-specific conventions for Chiro ERP consolidated services
+// Optimized for monolithic services with modular architecture
 
 plugins {
     kotlin("jvm")
     kotlin("plugin.allopen")
     kotlin("plugin.serialization")
     id("io.quarkus")
-}
-
-repositories {
-    mavenCentral()
-    mavenLocal()
+    id("common-conventions")
 }
 
 dependencies {
-    // Quarkus BOM for version management
-    implementation(platform("io.quarkus.platform:quarkus-bom:${project.property("quarkusVersion")}"))
+    // Additional service-specific dependencies
     
-    // Core Quarkus with Kotlin support
-    implementation("io.quarkus:quarkus-kotlin")
-    implementation("io.quarkus:quarkus-arc")
-    
-    // REST with Kotlin Serialization (consistent across all services)
-    implementation("io.quarkus:quarkus-rest")
-    implementation("io.quarkus:quarkus-rest-kotlin-serialization")
-    
-    // Database layer - Hibernate ORM with Kotlin Panache
-    implementation("io.quarkus:quarkus-hibernate-orm-panache-kotlin")
-    implementation("io.quarkus:quarkus-jdbc-postgresql")
-    
-    // Essential Kotlin libraries
-    implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8")
-    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json")
-    
-    // Microservices essentials
-    implementation("io.quarkus:quarkus-smallrye-health")
-    implementation("io.quarkus:quarkus-smallrye-metrics")
-    implementation("io.quarkus:quarkus-smallrye-openapi")
-    
-    // Service-specific capabilities
-    implementation("io.quarkus:quarkus-smallrye-graphql")
-    implementation("io.quarkus:quarkus-security-jpa")
-    implementation("io.quarkus:quarkus-flyway")
-    implementation("io.quarkus:quarkus-container-image-docker")
+    // Event streaming and messaging
     implementation("io.quarkus:quarkus-smallrye-reactive-messaging-kafka")
+    implementation("io.quarkus:quarkus-kafka-client")
     
-    // Testing foundation
-    testImplementation("io.quarkus:quarkus-junit5")
-    testImplementation("io.rest-assured:rest-assured")
+    // Service mesh and inter-service communication
+    implementation("io.quarkus:quarkus-rest-client-reactive")
+    implementation("io.quarkus:quarkus-rest-client-reactive-jackson")
+    
+    // Advanced persistence features
+    implementation("io.quarkus:quarkus-flyway")
+    implementation("io.quarkus:quarkus-hibernate-validator")
+    
+    // Security for consolidated services
+    implementation("io.quarkus:quarkus-security-jpa")
+    implementation("io.quarkus:quarkus-smallrye-jwt")
+    
+    // Container and deployment
+    implementation("io.quarkus:quarkus-container-image-docker")
+    implementation("io.quarkus:quarkus-kubernetes")
+    
+    // GraphQL support for consolidated APIs
+    implementation("io.quarkus:quarkus-smallrye-graphql")
+    
+    // Enhanced testing for modular services
+    testImplementation("io.quarkus:quarkus-test-h2")
+    testImplementation("io.quarkus:quarkus-test-security")
+    testImplementation("org.testcontainers:postgresql")
+    testImplementation("org.testcontainers:kafka")
 }
 
-// Kotlin configuration
-kotlin {
-    jvmToolchain(21)
-    
-    compilerOptions {
-        jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_21)
-        javaParameters.set(true)
-        freeCompilerArgs.set(listOf("-Xjsr305=strict"))
+// Quarkus configuration for consolidated services
+quarkus {
+    extension {
+        // Enable native compilation optimization
+        buildNative {
+            additionalBuildArgs = [
+                "--initialize-at-build-time=org.slf4j.LoggerFactory",
+                "--initialize-at-build-time=org.slf4j.impl.StaticLoggerBinder"
+            ]
+        }
     }
 }
 
-// Quarkus AllOpen configuration for Kotlin
-allOpen {
-    annotation("jakarta.ws.rs.Path")
-    annotation("jakarta.enterprise.context.ApplicationScoped")
-    annotation("jakarta.persistence.Entity")
-    annotation("io.quarkus.test.junit.QuarkusTest")
+// Enhanced JVM configuration for consolidated services
+tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile> {
+    kotlinOptions {
+        jvmTarget = "21"
+        freeCompilerArgs = listOf(
+            "-Xjsr305=strict",
+            "-Xcontext-receivers"
+        )
+    }
 }
 
-// Testing configuration
-tasks.withType<Test> {
+// Test configuration optimized for modular testing
+tasks.test {
+    useJUnitPlatform()
     systemProperty("java.util.logging.manager", "org.jboss.logmanager.LogManager")
+    
+    // Increased timeouts for consolidated service testing
+    systemProperty("quarkus.test.timeout", "300")
+    
+    // Memory configuration for testing multiple modules
+    minHeapSize = "512m"
+    maxHeapSize = "2g"
+    
+    // Parallel execution for module tests
+    maxParallelForks = Runtime.runtime.availableProcessors().div(2).takeIf { it > 0 } ?: 1
 }
 
-// Exclude Jackson dependencies to prevent conflicts with Kotlin Serialization
-configurations.all {
-    exclude(group = "com.fasterxml.jackson.core")
-    exclude(group = "com.fasterxml.jackson.annotation")
-    exclude(group = "com.fasterxml.jackson.databind")
-    exclude(group = "io.quarkus", module = "quarkus-resteasy-reactive-jackson")
-    exclude(group = "io.quarkus", module = "quarkus-resteasy-jackson")
+// Docker configuration for consolidated services
+tasks.named("buildDockerImage") {
+    dependsOn("build")
 }

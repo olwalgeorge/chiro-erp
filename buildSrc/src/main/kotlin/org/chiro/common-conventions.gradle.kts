@@ -1,5 +1,5 @@
-// Common conventions for Chiro ERP microservices within monolithic structure
-// Provides shared dependencies and configurations
+// Common conventions for Chiro ERP consolidated services
+// Shared dependencies and configurations across all services
 
 plugins {
     kotlin("jvm")
@@ -14,8 +14,8 @@ repositories {
 }
 
 dependencies {
-    // Quarkus BOM - manages all versions (using gradle.properties version)
-    implementation(platform("io.quarkus.platform:quarkus-bom:${property("quarkusVersion")}"))
+    // Quarkus BOM - manages all versions
+    implementation(platform("io.quarkus.platform:quarkus-bom:\"))
     
     // Core Quarkus with Kotlin support
     implementation("io.quarkus:quarkus-kotlin")
@@ -24,6 +24,7 @@ dependencies {
     // REST with Kotlin Serialization (consistent across all services)
     implementation("io.quarkus:quarkus-rest")
     implementation("io.quarkus:quarkus-rest-kotlin-serialization")
+    implementation("io.quarkus:quarkus-rest-jackson") // For external integrations
     
     // Database layer - Hibernate ORM with Kotlin Panache
     implementation("io.quarkus:quarkus-hibernate-orm-panache-kotlin")
@@ -32,15 +33,22 @@ dependencies {
     // Essential Kotlin libraries
     implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8")
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core")
     
     // Microservices essentials
     implementation("io.quarkus:quarkus-smallrye-health")
     implementation("io.quarkus:quarkus-smallrye-metrics")
     implementation("io.quarkus:quarkus-smallrye-openapi")
     
+    // Configuration and logging
+    implementation("io.quarkus:quarkus-config-yaml")
+    implementation("io.quarkus:quarkus-logging-json")
+    
     // Testing foundation
     testImplementation("io.quarkus:quarkus-junit5")
     testImplementation("io.rest-assured:rest-assured")
+    testImplementation("org.jetbrains.kotlin:kotlin-test-junit5")
+    testImplementation("org.mockito.kotlin:mockito-kotlin:5.1.0")
 }
 
 // Kotlin configuration
@@ -48,13 +56,12 @@ kotlin {
     jvmToolchain(21)
     
     compilerOptions {
-        jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_21)
-        javaParameters.set(true)
-        freeCompilerArgs.set(listOf("-Xjsr305=strict"))
+        freeCompilerArgs.add("-Xjsr305=strict")
+        freeCompilerArgs.add("-Xcontext-receivers")
     }
 }
 
-// Quarkus AllOpen configuration for Kotlin
+// Quarkus Kotlin configuration
 allOpen {
     annotation("jakarta.ws.rs.Path")
     annotation("jakarta.enterprise.context.ApplicationScoped")
@@ -62,16 +69,31 @@ allOpen {
     annotation("io.quarkus.test.junit.QuarkusTest")
 }
 
-// Testing configuration
-tasks.withType<Test> {
-    systemProperty("java.util.logging.manager", "org.jboss.logmanager.LogManager")
+// Java configuration
+java {
+    sourceCompatibility = JavaVersion.VERSION_21
+    targetCompatibility = JavaVersion.VERSION_21
 }
 
-// Ensure consistent Kotlin serialization, exclude Jackson completely
-configurations.all {
-    exclude(group = "com.fasterxml.jackson.core")
-    exclude(group = "com.fasterxml.jackson.annotation") 
-    exclude(group = "com.fasterxml.jackson.databind")
-    exclude(group = "io.quarkus", module = "quarkus-resteasy-reactive-jackson")
-    exclude(group = "io.quarkus", module = "quarkus-resteasy-jackson")
+// Test configuration
+tasks.test {
+    useJUnitPlatform()
+    systemProperty("java.util.logging.manager", "org.jboss.logmanager.LogManager")
+    
+    // Fail fast for build efficiency
+    failFast = true
+    
+    // Test logging
+    testLogging {
+        events("passed", "skipped", "failed")
+        exceptionFormat = org.gradle.api.tasks.testing.logging.TestExceptionFormat.FULL
+    }
+}
+
+// Build optimization
+tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile> {
+    kotlinOptions {
+        jvmTarget = "21"
+        allWarningsAsErrors = false
+    }
 }

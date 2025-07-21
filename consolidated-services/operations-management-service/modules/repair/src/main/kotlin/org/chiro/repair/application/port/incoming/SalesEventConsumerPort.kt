@@ -1,0 +1,1 @@
+// SalesEventConsumerPort.kt

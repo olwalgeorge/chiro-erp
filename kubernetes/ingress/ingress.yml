@@ -3,14 +3,21 @@ kind: Ingress
 metadata:
   name: chiro-erp-ingress
   namespace: chiro-erp
+  labels:
+    app: chiro-erp
   annotations:
     nginx.ingress.kubernetes.io/rewrite-target: /
     nginx.ingress.kubernetes.io/ssl-redirect: "false"
+    nginx.ingress.kubernetes.io/use-regex: "true"
+    nginx.ingress.kubernetes.io/cors-allow-origin: "*"
+    nginx.ingress.kubernetes.io/cors-allow-methods: "GET, POST, PUT, DELETE, OPTIONS"
+    nginx.ingress.kubernetes.io/cors-allow-headers: "Content-Type, Authorization"
 spec:
   rules:
   - host: chiro-erp.local
     http:
       paths:
+      # API Gateway (remains separate)
       - path: /api/gateway
         pathType: Prefix
         backend:
@@ -18,108 +25,145 @@ spec:
             name: api-gateway
             port:
               number: 8080
-      - path: /api/finance
-        pathType: Prefix
-        backend:
-          service:
-            name: finance-service
-            port:
-              number: 8080
-      - path: /api/inventory
-        pathType: Prefix
-        backend:
-          service:
-            name: inventory-service
-            port:
-              number: 8080
-      - path: /api/sales
-        pathType: Prefix
-        backend:
-          service:
-            name: sales-service
-            port:
-              number: 8080
-      - path: /api/procurement
-        pathType: Prefix
-        backend:
-          service:
-            name: procurement-service
-            port:
-              number: 8080
-      - path: /api/fleet
-        pathType: Prefix
-        backend:
-          service:
-            name: fleet-service
-            port:
-              number: 8080
-      - path: /api/project
-        pathType: Prefix
-        backend:
-          service:
-            name: project-service
-            port:
-              number: 8080
-      - path: /api/manufacturing
-        pathType: Prefix
-        backend:
-          service:
-            name: manufacturing-service
-            port:
-              number: 8080
-      - path: /api/fieldservice
-        pathType: Prefix
-        backend:
-          service:
-            name: fieldservice-service
-            port:
-              number: 8080
-      - path: /api/repair
-        pathType: Prefix
-        backend:
-          service:
-            name: repair-service
-            port:
-              number: 8080
-      - path: /api/hr
-        pathType: Prefix
-        backend:
-          service:
-            name: hr-service
-            port:
-              number: 8080
-      - path: /api/tenant
-        pathType: Prefix
-        backend:
-          service:
-            name: tenant-management-service
-            port:
-              number: 8080
-      - path: /api/user
-        pathType: Prefix
-        backend:
-          service:
-            name: user-management-service
-            port:
-              number: 8080
-      - path: /api/billing
-        pathType: Prefix
-        backend:
-          service:
-            name: billing-service
-            port:
-              number: 8080
-      - path: /api/pos
-        pathType: Prefix
-        backend:
-          service:
-            name: pos-service
-            port:
-              number: 8080
+      # customer-relations-service - /api/crm
       - path: /api/crm
         pathType: Prefix
         backend:
           service:
-            name: crm-service
+            name: customer-relations-service
             port:
-              number: 8080
+              number: 80
+      # customer-relations-service - /api/repair
+      - path: /api/repair
+        pathType: Prefix
+        backend:
+          service:
+            name: customer-relations-service
+            port:
+              number: 80
+      # platform-services - /api/analytics
+      - path: /api/analytics
+        pathType: Prefix
+        backend:
+          service:
+            name: platform-services
+            port:
+              number: 80
+      # platform-services - /api/notifications
+      - path: /api/notifications
+        pathType: Prefix
+        backend:
+          service:
+            name: platform-services
+            port:
+              number: 80
+      # operations-management-service - /api/project
+      - path: /api/project
+        pathType: Prefix
+        backend:
+          service:
+            name: operations-management-service
+            port:
+              number: 80
+      # operations-management-service - /api/fleet
+      - path: /api/fleet
+        pathType: Prefix
+        backend:
+          service:
+            name: operations-management-service
+            port:
+              number: 80
+      # operations-management-service - /api/pos
+      - path: /api/pos
+        pathType: Prefix
+        backend:
+          service:
+            name: operations-management-service
+            port:
+              number: 80
+      # operations-management-service - /api/fieldservice
+      - path: /api/fieldservice
+        pathType: Prefix
+        backend:
+          service:
+            name: operations-management-service
+            port:
+              number: 80
+      # platform-services - /api/billing
+      - path: /api/billing
+        pathType: Prefix
+        backend:
+          service:
+            name: platform-services
+            port:
+              number: 80
+      # core-business-service - /api/finance
+      - path: /api/finance
+        pathType: Prefix
+        backend:
+          service:
+            name: core-business-service
+            port:
+              number: 80
+      # core-business-service - /api/sales
+      - path: /api/sales
+        pathType: Prefix
+        backend:
+          service:
+            name: core-business-service
+            port:
+              number: 80
+      # core-business-service - /api/inventory
+      - path: /api/inventory
+        pathType: Prefix
+        backend:
+          service:
+            name: core-business-service
+            port:
+              number: 80
+      # core-business-service - /api/procurement
+      - path: /api/procurement
+        pathType: Prefix
+        backend:
+          service:
+            name: core-business-service
+            port:
+              number: 80
+      # core-business-service - /api/manufacturing
+      - path: /api/manufacturing
+        pathType: Prefix
+        backend:
+          service:
+            name: core-business-service
+            port:
+              number: 80
+      # workforce-management-service - /api/hr
+      - path: /api/hr
+        pathType: Prefix
+        backend:
+          service:
+            name: workforce-management-service
+            port:
+              number: 80
+      # workforce-management-service - /api/users
+      - path: /api/users
+        pathType: Prefix
+        backend:
+          service:
+            name: workforce-management-service
+            port:
+              number: 80
+      # platform-services - /api/tenants
+      - path: /api/tenants
+        pathType: Prefix
+        backend:
+          service:
+            name: platform-services
+            port:
+              number: 80
+  # TLS configuration (optional)
+  # tls:
+  # - hosts:
+  #   - chiro-erp.local
+  #   secretName: chiro-erp-tls
+

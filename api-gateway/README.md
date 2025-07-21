@@ -1,114 +1,182 @@
-# API Gateway
+# API Gateway Service
 
-## Overview
+The API Gateway serves as the unified entry point for the Chiro ERP consolidated services architecture.
 
-The API Gateway serves as the single entry point for all external requests to the Chiro ERP system. It provides routing, authentication, rate limiting, and API management capabilities.
-
-## 🎯 Business Purpose
+## 🎯 Purpose
 
 This service handles:
 
--   **Request Routing**: Route requests to appropriate microservices
--   **Authentication & Authorization**: JWT validation and user context
--   **Rate Limiting**: API usage throttling and abuse prevention
+-   **Request Routing**: Route requests to appropriate consolidated services
+-   **Authentication & Authorization**: Validate and authorize incoming requests  
+-   **Rate Limiting**: Prevent API abuse and ensure fair usage
 -   **Load Balancing**: Distribute requests across service instances
--   **API Documentation**: Unified API documentation and testing
--   **Security**: SSL termination, CORS, and security headers
+-   **Circuit Breaking**: Prevent cascade failures
+-   **API Documentation**: Aggregate OpenAPI specs from all services
 
 ## 🏗️ Architecture
 
-### Domain Model
+### Consolidated Service Routing
 
-```
-Route (Configuration)
-├── Path (Value Object)
-├── Method (Value Object)
-├── TargetService (Reference)
-├── AuthRequired (Value Object)
-└── RateLimit (Value Object)
+The gateway routes requests to 5 consolidated services:
 
-ApiKey (Aggregate Root)
-├── ApiKeyId (Identity)
-├── ClientId (Reference)
-├── Key (Value Object)
-├── Permissions (Value Object Collection)
-└── Usage (Entity Collection)
-```
+1. **core-business-service** (Port 8081)
+   - /api/billing/** → Billing operations
+   - /api/finance/** → Financial management
+   - /api/sales/** → Sales operations
+   - /api/inventory/** → Inventory management  
+   - /api/procurement/** → Procurement operations
+   - /api/manufacturing/** → Manufacturing operations
 
-### API Endpoints
+2. **operations-management-service** (Port 8082)
+   - /api/project/** → Project management
+   - /api/fleet/** → Fleet management
+   - /api/pos/** → Point of sale
+   - /api/fieldservice/** → Field service operations
+   - /api/repair/** → Repair management
 
-#### Core Routes
+3. **customer-relations-service** (Port 8083)
+   - /api/crm/** → Customer relationship management
 
-```
-GET    /api/v1/health                     # Gateway health check
-GET    /api/v1/metrics                    # Gateway metrics
-GET    /api/v1/docs                       # API documentation
-GET    /api/v1/swagger                    # Swagger UI
-```
+4. **platform-services-service** (Port 8084)
+   - /api/analytics/** → Analytics and reporting
+   - /api/notifications/** → Notification services
 
-#### Service Proxying
+5. **workforce-management-service** (Port 8085)
+   - /api/hr/** → Human resources
+   - /api/users/** → User management
+   - /api/tenants/** → Multi-tenant management
 
--   `/api/v1/users/**` → User Management Service
--   `/api/v1/tenants/**` → Tenant Management Service
--   `/api/v1/sales/**` → Sales Service
--   `/api/v1/inventory/**` → Inventory Service
--   `/api/v1/crm/**` → CRM Service
--   `/api/v1/finance/**` → Finance Service
--   And all other services...
+## 🚀 Features
 
-### Features
+### Routing & Load Balancing
+- Path-based routing to consolidated services
+- Round-robin load balancing
+- Health check integration
+- Automatic failover
 
--   **Circuit Breaker**: Prevent cascade failures
--   **Request Logging**: Comprehensive access logs
--   **Response Caching**: Cache frequent requests
--   **API Versioning**: Support multiple API versions
--   **WebSocket Support**: Real-time communication proxy
+### Security
+- JWT token validation
+- API key authentication
+- CORS configuration
+- Rate limiting per client
 
-## 🚀 Getting Started
+### Monitoring & Observability
+- Request/response logging
+- Metrics collection (Prometheus)
+- Distributed tracing
+- Health check endpoints
 
-### Local Development Setup
+### Fault Tolerance
+- Circuit breaker pattern
+- Request timeout handling
+- Retry logic with backoff
+- Graceful degradation
 
--   Service: http://localhost:8080
--   Dev UI: http://localhost:8080/q/dev/
--   Swagger UI: http://localhost:8080/swagger-ui/
+## 📋 API Endpoints
 
-### Configuration
+### Gateway Management
+`
+GET    /q/health                         # Gateway health check
+GET    /q/metrics                        # Gateway metrics  
+GET    /q/openapi                        # Aggregated OpenAPI spec
+`
 
-```yaml
-gateway:
-    cors:
-        allowed-origins: ["http://localhost:3000"]
-        allowed-methods: ["GET", "POST", "PUT", "DELETE"]
-    rate-limiting:
-        requests-per-minute: 1000
-        burst-size: 100
-    services:
-        user-management:
-            url: "http://user-management-service:8080"
-            health-check: "/q/health"
-```
+### Service Proxying
+All /api/** requests are routed to appropriate consolidated services based on path prefix.
 
-## 🔒 Security Features
+## ⚙️ Configuration
 
-### Authentication
+### Environment Variables
+`ash
+# Service URLs
+GATEWAY_SERVICES_CORE_BUSINESS_URL=http://core-business-service:8081
+GATEWAY_SERVICES_OPERATIONS_MANAGEMENT_URL=http://operations-management-service:8082
+GATEWAY_SERVICES_CUSTOMER_RELATIONS_URL=http://customer-relations-service:8083
+GATEWAY_SERVICES_PLATFORM_SERVICES_URL=http://platform-services-service:8084
+GATEWAY_SERVICES_WORKFORCE_MANAGEMENT_URL=http://workforce-management-service:8085
 
--   JWT token validation
--   API key authentication for external integrations
--   OAuth 2.0/OIDC support
+# Rate Limiting
+GATEWAY_RATE_LIMITING_REQUESTS_PER_MINUTE=1000
+GATEWAY_RATE_LIMITING_BURST_SIZE=100
 
-### Authorization
+# Circuit Breaker
+GATEWAY_CIRCUIT_BREAKER_FAILURE_THRESHOLD=5
+GATEWAY_CIRCUIT_BREAKER_RECOVERY_TIMEOUT=30s
+`
 
--   Role-based access control
--   Resource-level permissions
--   Tenant-based isolation
+### Application Configuration
+See src/main/resources/application.yml for complete configuration options.
 
-### Security Headers
+## 🏃‍♂️ Running the Service
 
--   HTTPS enforcement
--   CSRF protection
--   Security headers (HSTS, CSP, etc.)
+### Local Development
+`ash
+./gradlew quarkusDev
+`
+
+### Docker
+`ash
+docker build -t chiro-erp/api-gateway .
+docker run -p 8080:8080 chiro-erp/api-gateway
+`
+
+### Kubernetes
+`ash
+kubectl apply -f kubernetes/services/api-gateway/
+`
+
+## 🧪 Testing
+
+### Unit Tests
+`ash
+./gradlew test
+`
+
+### Integration Tests
+`ash
+./gradlew integrationTest
+`
+
+### Load Testing
+`ash
+# Use your preferred load testing tool against http://localhost:8080/api/
+`
+
+## 📊 Monitoring
+
+### Health Checks
+- Gateway: http://localhost:8080/q/health
+- Individual services health checks are proxied through the gateway
+
+### Metrics
+- Prometheus metrics: http://localhost:8080/q/metrics
+- Request rates, latencies, error rates
+- Circuit breaker states
+- Service health status
+
+## 🔧 Development
+
+### Adding New Routes
+1. Update service mapping in ConsolidatedRequestRoutingService
+2. Add configuration in pplication.yml
+3. Update this README documentation
+
+### Custom Filters
+Implement custom filters by extending the routing logic in the request routing service.
+
+## 📈 Performance
+
+### Optimizations
+- Connection pooling for service calls
+- Response caching for static content
+- Request batching where applicable
+- Async/non-blocking I/O
+
+### Scaling
+- Horizontal scaling via Kubernetes
+- Load balancer integration
+- Service mesh compatibility (Istio)
 
 ---
 
-**Service Version**: 1.0.0
-**Maintainer**: Platform Team
+This gateway is optimized for the consolidated monolithic services architecture while maintaining the flexibility to scale and evolve with your system needs.

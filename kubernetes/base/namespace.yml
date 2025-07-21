@@ -2,3 +2,7 @@ apiVersion: v1
 kind: Namespace
 metadata:
   name: chiro-erp
+  labels:
+    name: chiro-erp
+    app: chiro-erp
+---

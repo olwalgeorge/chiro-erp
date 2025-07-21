@@ -1,0 +1,23 @@
+[
+  {
+    "id": "diagnosis",
+    "name": "Product Diagnosis",
+    "description": "Initial diagnostic assessment of product issues",
+    "estimatedDurationHours": 1,
+    "standardRate": 75.0
+  },
+  {
+    "id": "component_replacement",
+    "name": "Component Replacement",
+    "description": "Replace defective components or parts",
+    "estimatedDurationHours": 3,
+    "standardRate": 85.0
+  },
+  {
+    "id": "warranty_repair",
+    "name": "Warranty Repair",
+    "description": "Repair covered under product warranty",
+    "estimatedDurationHours": 2,
+    "standardRate": 0.0
+  }
+]
