@@ -1,6 +1,5 @@
 // Consolidated service-specific conventions
 // For the 5 main consolidated services with multiple modules
-// Maintains consistent REST + Kotlin serialization + Jackson pattern
 
 plugins {
     id("service-conventions")
@@ -24,15 +23,76 @@ dependencies {
     // Email and notifications
     implementation("io.quarkus:quarkus-mailer")
     
-    // WebSocket support for real-time features (uses Jackson serialization)
+    // WebSocket support for real-time features
     implementation("io.quarkus:quarkus-websockets")
     
     // Enhanced testing for consolidated services
     testImplementation("io.quarkus:quarkus-test-artemis")
-    testImplementation("io.quarkus:quarkus-test-security")
-    testImplementation("io.quarkus:quarkus-test-kafka-companion")
+    testImplementation("org.testcontainers:junit-jupiter")
 }
 
-// Group configuration
-group = "com.chiro.consolidated"
-version = "1.0.0-SNAPSHOT"
+// Module structure validation
+tasks.register("validateModuleStructure") {
+    doLast {
+        val modulesDir = project.file("modules")
+        if (!modulesDir.exists()) {
+            throw GradleException("Consolidated service must have a 'modules' directory")
+        }
+        
+        val modules = modulesDir.listFiles()?.filter { it.isDirectory }
+        if (modules.isNullOrEmpty()) {
+            throw GradleException("Consolidated service must have at least one module")
+        }
+        
+        println("✅ Validated ${modules.size} modules in ${project.name}")
+    }
+}
+
+// Ensure module validation runs before build
+tasks.build {
+    dependsOn("validateModuleStructure")
+}
+
+// Integration test configuration for consolidated services
+tasks.register<Test>("integrationTest") {
+    description = "Runs integration tests for consolidated service modules"
+    group = "verification"
+    
+    testClassesDirs = sourceSets["test"].output.classesDirs
+    classpath = sourceSets["test"].runtimeClasspath
+    
+    useJUnitPlatform {
+        includeTags("integration")
+    }
+    
+    systemProperty("java.util.logging.manager", "org.jboss.logmanager.LogManager")
+    
+    // Longer timeout for integration tests
+    systemProperty("quarkus.test.timeout", "600")
+    
+    // Test containers configuration
+    systemProperty("testcontainers.reuse.enable", "true")
+    
+    shouldRunAfter("test")
+}
+
+// Module test task
+tasks.register<Test>("moduleTest") {
+    description = "Runs module-specific tests"
+    group = "verification"
+    
+    testClassesDirs = sourceSets["test"].output.classesDirs
+    classpath = sourceSets["test"].runtimeClasspath
+    
+    useJUnitPlatform {
+        includeTags("module")
+    }
+    
+    systemProperty("java.util.logging.manager", "org.jboss.logmanager.LogManager")
+    shouldRunAfter("test")
+}
+
+// Add integration tests to check task
+tasks.check {
+    dependsOn("integrationTest", "moduleTest")
+}

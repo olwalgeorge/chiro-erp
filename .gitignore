@@ -1,7 +1,6 @@
 # Gradle
 .gradle/
 build/
-buildSrc/.kotlin/
 
 # Eclipse
 .project

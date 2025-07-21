@@ -12,7 +12,8 @@ dependencies {
     implementation("io.quarkus:quarkus-micrometer")
     
     // Additional business logic dependencies will be inherited from conventions
-    // REST dependencies are inherited from consolidated-service-conventions
+    implementation("io.quarkus:quarkus-resteasy-reactive")
+    implementation("io.quarkus:quarkus-resteasy-reactive-jackson")
     
     // Database
     implementation("io.quarkus:quarkus-hibernate-orm-panache-kotlin")

@@ -1,6 +1,5 @@
 // Common conventions for Chiro ERP consolidated services
-// Aligned with reference project: https://github.com/olwalgeorge/erp/blob/main/build.gradle.kts
-// Focus: REST with Kotlin serialization, ORM, and Jackson for external serialization
+// Shared dependencies and configurations across all services
 
 plugins {
     kotlin("jvm")
@@ -14,28 +13,24 @@ repositories {
     mavenLocal()
 }
 
-val quarkusPlatformGroupId: String by project
-val quarkusPlatformArtifactId: String by project
-val quarkusPlatformVersion: String by project
-
 dependencies {
-    // Quarkus BOM - enforced platform manages all versions (like reference project)
-    implementation(enforcedPlatform("${quarkusPlatformGroupId}:${quarkusPlatformArtifactId}:${quarkusPlatformVersion}"))
+    // Quarkus BOM - manages all versions
+    implementation(platform("io.quarkus.platform:quarkus-bom:3.8.1"))
     
     // Core Quarkus with Kotlin support
     implementation("io.quarkus:quarkus-kotlin")
-    implementation("io.quarkus:quarkus-arc") // CDI container (from reference)
+    implementation("io.quarkus:quarkus-arc") // CDI container
     
-    // REST layer (enhanced from reference with Kotlin serialization)
-    implementation("io.quarkus:quarkus-rest") // Main REST (from reference)
-    implementation("io.quarkus:quarkus-rest-kotlin-serialization") // Kotlin serialization for internal APIs
+    // REST with Kotlin Serialization (consistent across all services)
+    implementation("io.quarkus:quarkus-rest")
+    implementation("io.quarkus:quarkus-rest-kotlin-serialization")
+    implementation("io.quarkus:quarkus-rest-jackson") // For external integrations
     
-    // Database layer (from reference + Kotlin Panache)
-    implementation("io.quarkus:quarkus-hibernate-orm") // Core ORM (from reference)
-    implementation("io.quarkus:quarkus-hibernate-orm-panache-kotlin") // Kotlin Panache
-    implementation("io.quarkus:quarkus-jdbc-postgresql") // PostgreSQL driver (from reference)
+    // Database layer - Hibernate ORM with Kotlin Panache
+    implementation("io.quarkus:quarkus-hibernate-orm-panache-kotlin")
+    implementation("io.quarkus:quarkus-jdbc-postgresql")
     
-    // Essential Kotlin libraries (versions managed by Quarkus BOM)
+    // Essential Kotlin libraries
     implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8")
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core")
@@ -49,17 +44,21 @@ dependencies {
     implementation("io.quarkus:quarkus-config-yaml")
     implementation("io.quarkus:quarkus-logging-json")
     
-    // Testing foundation (from reference)
-    testImplementation("io.quarkus:quarkus-junit5") // From reference
-    testImplementation("io.rest-assured:rest-assured") // From reference
+    // Testing foundation
+    testImplementation("io.quarkus:quarkus-junit5")
+    testImplementation("io.rest-assured:rest-assured")
     testImplementation("org.jetbrains.kotlin:kotlin-test-junit5")
-    // Only specify version for dependencies NOT in Quarkus BOM
     testImplementation("org.mockito.kotlin:mockito-kotlin:5.1.0")
 }
 
 // Kotlin configuration
 kotlin {
     jvmToolchain(21)
+    
+    compilerOptions {
+        freeCompilerArgs.add("-Xjsr305=strict")
+        freeCompilerArgs.add("-Xcontext-receivers")
+    }
 }
 
 // Quarkus Kotlin configuration
@@ -70,13 +69,13 @@ allOpen {
     annotation("io.quarkus.test.junit.QuarkusTest")
 }
 
-// Java configuration (from reference project)
+// Java configuration
 java {
     sourceCompatibility = JavaVersion.VERSION_21
     targetCompatibility = JavaVersion.VERSION_21
 }
 
-// Test configuration (enhanced from reference)
+// Test configuration
 tasks.test {
     useJUnitPlatform()
     systemProperty("java.util.logging.manager", "org.jboss.logmanager.LogManager")
@@ -91,17 +90,10 @@ tasks.test {
     }
 }
 
-// Build optimization (aligned with reference project Java settings)
+// Build optimization
 tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile> {
     kotlinOptions {
         jvmTarget = "21"
         allWarningsAsErrors = false
     }
 }
-
-// Java compile settings (from reference project)
-tasks.withType<JavaCompile> {
-    options.encoding = "UTF-8"
-    options.compilerArgs.add("-parameters")
-}
-
