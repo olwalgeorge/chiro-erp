@@ -39,3 +39,26 @@ nb-configuration.xml
 /.quarkus/cli/plugins/
 # TLS Certificates
 .certs/
+
+# === PROJECT SPECIFIC IGNORES ===
+# Backup directories and files
+.backup/
+*.backup.*
+*backup-*/
+
+# Build backup files  
+*.backup.kts
+*.backup.properties
+*.backup.yml
+*.backup.yaml
+
+# Temporary files and logs
+*.tmp
+*.temp
+*.log
+logs/
+
+# OS generated files
+Thumbs.db
+ehthumbs.db
+Desktop.ini
