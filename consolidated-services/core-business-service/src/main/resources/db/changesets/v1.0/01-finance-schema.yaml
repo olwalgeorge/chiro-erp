@@ -1,0 +1,220 @@
+databaseChangeLog:
+  - changeSet:
+      id: finance-schema-v1.0.0
+      author: chiro-erp-team
+      labels: "finance,core-business,v1.0"
+      context: "production,staging"
+      comment: "Create finance module schema with modern DDD patterns"
+      
+      changes:
+        - createTable:
+            schemaName: finance
+            tableName: accounts
+            columns:
+              - column:
+                  name: id
+                  type: UUID
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: account_code
+                  type: VARCHAR(20)
+                  constraints:
+                    nullable: false
+                    unique: true
+              - column:
+                  name: account_name
+                  type: VARCHAR(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: account_type
+                  type: VARCHAR(50)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: parent_account_id
+                  type: UUID
+              - column:
+                  name: balance_amount
+                  type: DECIMAL(19,4)
+                  defaultValue: 0.0000
+              - column:
+                  name: balance_currency
+                  type: VARCHAR(3)
+                  defaultValue: "USD"
+              - column:
+                  name: is_active
+                  type: BOOLEAN
+                  defaultValue: true
+              - column:
+                  name: created_at
+                  type: TIMESTAMP WITH TIME ZONE
+                  defaultValueComputed: "CURRENT_TIMESTAMP"
+              - column:
+                  name: updated_at
+                  type: TIMESTAMP WITH TIME ZONE
+                  defaultValueComputed: "CURRENT_TIMESTAMP"
+              - column:
+                  name: version
+                  type: BIGINT
+                  defaultValue: 0
+                  
+        - createTable:
+            schemaName: finance
+            tableName: transactions
+            columns:
+              - column:
+                  name: id
+                  type: UUID
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: transaction_number
+                  type: VARCHAR(50)
+                  constraints:
+                    nullable: false
+                    unique: true
+              - column:
+                  name: transaction_date
+                  type: DATE
+                  constraints:
+                    nullable: false
+              - column:
+                  name: description
+                  type: VARCHAR(500)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: reference_number
+                  type: VARCHAR(100)
+              - column:
+                  name: total_amount
+                  type: DECIMAL(19,4)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: currency_code
+                  type: VARCHAR(3)
+                  defaultValue: "USD"
+              - column:
+                  name: status
+                  type: VARCHAR(20)
+                  defaultValue: "DRAFT"
+              - column:
+                  name: created_by
+                  type: UUID
+              - column:
+                  name: created_at
+                  type: TIMESTAMP WITH TIME ZONE
+                  defaultValueComputed: "CURRENT_TIMESTAMP"
+              - column:
+                  name: posted_at
+                  type: TIMESTAMP WITH TIME ZONE
+              - column:
+                  name: version
+                  type: BIGINT
+                  defaultValue: 0
+                  
+        - createTable:
+            schemaName: finance
+            tableName: transaction_lines
+            columns:
+              - column:
+                  name: id
+                  type: UUID
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: transaction_id
+                  type: UUID
+                  constraints:
+                    nullable: false
+              - column:
+                  name: account_id
+                  type: UUID
+                  constraints:
+                    nullable: false
+              - column:
+                  name: line_number
+                  type: INTEGER
+                  constraints:
+                    nullable: false
+              - column:
+                  name: description
+                  type: VARCHAR(255)
+              - column:
+                  name: debit_amount
+                  type: DECIMAL(19,4)
+                  defaultValue: 0.0000
+              - column:
+                  name: credit_amount
+                  type: DECIMAL(19,4)
+                  defaultValue: 0.0000
+              - column:
+                  name: currency_code
+                  type: VARCHAR(3)
+                  defaultValue: "USD"
+              - column:
+                  name: created_at
+                  type: TIMESTAMP WITH TIME ZONE
+                  defaultValueComputed: "CURRENT_TIMESTAMP"
+              - column:
+                  name: version
+                  type: BIGINT
+                  defaultValue: 0
+                  
+        - addForeignKeyConstraint:
+            baseTableSchemaName: finance
+            baseTableName: accounts
+            baseColumnNames: parent_account_id
+            referencedTableSchemaName: finance
+            referencedTableName: accounts
+            referencedColumnNames: id
+            constraintName: fk_accounts_parent
+            
+        - addForeignKeyConstraint:
+            baseTableSchemaName: finance
+            baseTableName: transaction_lines
+            baseColumnNames: transaction_id
+            referencedTableSchemaName: finance
+            referencedTableName: transactions
+            referencedColumnNames: id
+            constraintName: fk_transaction_lines_transaction
+            onDelete: CASCADE
+            
+        - addForeignKeyConstraint:
+            baseTableSchemaName: finance
+            baseTableName: transaction_lines
+            baseColumnNames: account_id
+            referencedTableSchemaName: finance
+            referencedTableName: accounts
+            referencedColumnNames: id
+            constraintName: fk_transaction_lines_account
+            
+        - createIndex:
+            schemaName: finance
+            tableName: accounts
+            indexName: idx_accounts_type
+            columns:
+              - column:
+                  name: account_type
+                  
+        - createIndex:
+            schemaName: finance
+            tableName: transactions
+            indexName: idx_transactions_date
+            columns:
+              - column:
+                  name: transaction_date
+                  
+        - createIndex:
+            schemaName: finance
+            tableName: transactions
+            indexName: idx_transactions_status
+            columns:
+              - column:
+                  name: status

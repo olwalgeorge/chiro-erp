@@ -1,1 +1,0 @@
-// InventoryPartsAvailableEventDTO.kt

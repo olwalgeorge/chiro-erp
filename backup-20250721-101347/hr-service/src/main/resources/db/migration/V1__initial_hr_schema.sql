@@ -1,1 +1,0 @@
--- db/migration/V1__initial_hr_schema.sql

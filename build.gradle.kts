@@ -16,12 +16,15 @@ dependencies {
     implementation("io.quarkus:quarkus-kotlin")
     implementation("io.quarkus:quarkus-hibernate-reactive-panache-kotlin")
     implementation("io.quarkus:quarkus-jdbc-postgresql")
+    implementation("io.quarkus:quarkus-liquibase")                           // Modern YAML-based migrations
     implementation("io.quarkus:quarkus-rest-kotlin-serialization")
     implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8")
     implementation("io.quarkus:quarkus-arc")
     implementation("io.quarkus:quarkus-rest")
+    implementation("io.quarkus:quarkus-hibernate-validator")                 // Bean validation
     testImplementation("io.quarkus:quarkus-junit5")
     testImplementation("io.rest-assured:rest-assured")
+    testImplementation("io.quarkus:quarkus-test-h2")                        // In-memory testing
 }
 
 group = "org.chiro"

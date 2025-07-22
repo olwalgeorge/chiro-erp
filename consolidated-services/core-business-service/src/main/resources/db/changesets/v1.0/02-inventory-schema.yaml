@@ -1,0 +1,325 @@
+databaseChangeLog:
+  - changeSet:
+      id: inventory-schema-v1.0.0
+      author: chiro-erp-team
+      labels: "inventory,core-business,v1.0"
+      context: "production,staging"
+      comment: "Create inventory module schema with modern stock management"
+      
+      changes:
+        - createTable:
+            schemaName: inventory
+            tableName: products
+            columns:
+              - column:
+                  name: id
+                  type: UUID
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: sku
+                  type: VARCHAR(50)
+                  constraints:
+                    nullable: false
+                    unique: true
+              - column:
+                  name: name
+                  type: VARCHAR(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: description
+                  type: TEXT
+              - column:
+                  name: product_type
+                  type: VARCHAR(50)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: category
+                  type: VARCHAR(100)
+              - column:
+                  name: unit_of_measure
+                  type: VARCHAR(20)
+                  defaultValue: "EACH"
+              - column:
+                  name: standard_cost
+                  type: DECIMAL(19,4)
+                  defaultValue: 0.0000
+              - column:
+                  name: currency_code
+                  type: VARCHAR(3)
+                  defaultValue: "USD"
+              - column:
+                  name: is_active
+                  type: BOOLEAN
+                  defaultValue: true
+              - column:
+                  name: created_at
+                  type: TIMESTAMP WITH TIME ZONE
+                  defaultValueComputed: "CURRENT_TIMESTAMP"
+              - column:
+                  name: updated_at
+                  type: TIMESTAMP WITH TIME ZONE
+                  defaultValueComputed: "CURRENT_TIMESTAMP"
+              - column:
+                  name: version
+                  type: BIGINT
+                  defaultValue: 0
+                  
+        - createTable:
+            schemaName: inventory
+            tableName: inventory_locations
+            columns:
+              - column:
+                  name: id
+                  type: UUID
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: location_code
+                  type: VARCHAR(20)
+                  constraints:
+                    nullable: false
+                    unique: true
+              - column:
+                  name: location_name
+                  type: VARCHAR(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: location_type
+                  type: VARCHAR(50)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: address_line1
+                  type: VARCHAR(255)
+              - column:
+                  name: address_line2
+                  type: VARCHAR(255)
+              - column:
+                  name: city
+                  type: VARCHAR(100)
+              - column:
+                  name: state_province
+                  type: VARCHAR(50)
+              - column:
+                  name: postal_code
+                  type: VARCHAR(20)
+              - column:
+                  name: country_code
+                  type: VARCHAR(3)
+              - column:
+                  name: is_active
+                  type: BOOLEAN
+                  defaultValue: true
+              - column:
+                  name: created_at
+                  type: TIMESTAMP WITH TIME ZONE
+                  defaultValueComputed: "CURRENT_TIMESTAMP"
+              - column:
+                  name: version
+                  type: BIGINT
+                  defaultValue: 0
+                  
+        - createTable:
+            schemaName: inventory
+            tableName: product_stock
+            columns:
+              - column:
+                  name: id
+                  type: UUID
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: product_id
+                  type: UUID
+                  constraints:
+                    nullable: false
+              - column:
+                  name: location_id
+                  type: UUID
+                  constraints:
+                    nullable: false
+              - column:
+                  name: quantity_on_hand
+                  type: DECIMAL(19,4)
+                  defaultValue: 0.0000
+              - column:
+                  name: quantity_available
+                  type: DECIMAL(19,4)
+                  defaultValue: 0.0000
+              - column:
+                  name: quantity_committed
+                  type: DECIMAL(19,4)
+                  defaultValue: 0.0000
+              - column:
+                  name: quantity_on_order
+                  type: DECIMAL(19,4)
+                  defaultValue: 0.0000
+              - column:
+                  name: reorder_point
+                  type: DECIMAL(19,4)
+                  defaultValue: 0.0000
+              - column:
+                  name: reorder_quantity
+                  type: DECIMAL(19,4)
+                  defaultValue: 0.0000
+              - column:
+                  name: last_movement_date
+                  type: TIMESTAMP WITH TIME ZONE
+              - column:
+                  name: created_at
+                  type: TIMESTAMP WITH TIME ZONE
+                  defaultValueComputed: "CURRENT_TIMESTAMP"
+              - column:
+                  name: updated_at
+                  type: TIMESTAMP WITH TIME ZONE
+                  defaultValueComputed: "CURRENT_TIMESTAMP"
+              - column:
+                  name: version
+                  type: BIGINT
+                  defaultValue: 0
+                  
+        - createTable:
+            schemaName: inventory
+            tableName: stock_movements
+            columns:
+              - column:
+                  name: id
+                  type: UUID
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: product_id
+                  type: UUID
+                  constraints:
+                    nullable: false
+              - column:
+                  name: location_id
+                  type: UUID
+                  constraints:
+                    nullable: false
+              - column:
+                  name: movement_type
+                  type: VARCHAR(50)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: reference_number
+                  type: VARCHAR(100)
+              - column:
+                  name: movement_date
+                  type: TIMESTAMP WITH TIME ZONE
+                  constraints:
+                    nullable: false
+              - column:
+                  name: quantity
+                  type: DECIMAL(19,4)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: unit_cost
+                  type: DECIMAL(19,4)
+              - column:
+                  name: total_cost
+                  type: DECIMAL(19,4)
+              - column:
+                  name: currency_code
+                  type: VARCHAR(3)
+                  defaultValue: "USD"
+              - column:
+                  name: notes
+                  type: TEXT
+              - column:
+                  name: created_by
+                  type: UUID
+              - column:
+                  name: created_at
+                  type: TIMESTAMP WITH TIME ZONE
+                  defaultValueComputed: "CURRENT_TIMESTAMP"
+              - column:
+                  name: version
+                  type: BIGINT
+                  defaultValue: 0
+                  
+        - addForeignKeyConstraint:
+            baseTableSchemaName: inventory
+            baseTableName: product_stock
+            baseColumnNames: product_id
+            referencedTableSchemaName: inventory
+            referencedTableName: products
+            referencedColumnNames: id
+            constraintName: fk_product_stock_product
+            
+        - addForeignKeyConstraint:
+            baseTableSchemaName: inventory
+            baseTableName: product_stock
+            baseColumnNames: location_id
+            referencedTableSchemaName: inventory
+            referencedTableName: inventory_locations
+            referencedColumnNames: id
+            constraintName: fk_product_stock_location
+            
+        - addForeignKeyConstraint:
+            baseTableSchemaName: inventory
+            baseTableName: stock_movements
+            baseColumnNames: product_id
+            referencedTableSchemaName: inventory
+            referencedTableName: products
+            referencedColumnNames: id
+            constraintName: fk_stock_movements_product
+            
+        - addForeignKeyConstraint:
+            baseTableSchemaName: inventory
+            baseTableName: stock_movements
+            baseColumnNames: location_id
+            referencedTableSchemaName: inventory
+            referencedTableName: inventory_locations
+            referencedColumnNames: id
+            constraintName: fk_stock_movements_location
+            
+        - addUniqueConstraint:
+            schemaName: inventory
+            tableName: product_stock
+            columnNames: product_id, location_id
+            constraintName: uk_product_stock_product_location
+            
+        - createIndex:
+            schemaName: inventory
+            tableName: products
+            indexName: idx_products_sku
+            columns:
+              - column:
+                  name: sku
+                  
+        - createIndex:
+            schemaName: inventory
+            tableName: products
+            indexName: idx_products_type_category
+            columns:
+              - column:
+                  name: product_type
+              - column:
+                  name: category
+                  
+        - createIndex:
+            schemaName: inventory
+            tableName: stock_movements
+            indexName: idx_stock_movements_date
+            columns:
+              - column:
+                  name: movement_date
+                  
+        - createIndex:
+            schemaName: inventory
+            tableName: stock_movements
+            indexName: idx_stock_movements_type
+            columns:
+              - column:
+                  name: movement_type

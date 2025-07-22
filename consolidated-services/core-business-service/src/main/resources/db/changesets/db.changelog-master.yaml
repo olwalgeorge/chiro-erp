@@ -1,0 +1,15 @@
+databaseChangeLog:
+  - include:
+      file: db/changesets/v1.0/01-finance-schema.yaml
+  - include:
+      file: db/changesets/v1.0/02-inventory-schema.yaml
+  - include:
+      file: db/changesets/v1.0/03-sales-schema.yaml
+  - include:
+      file: db/changesets/v1.0/04-procurement-schema.yaml
+  - include:
+      file: db/changesets/v1.0/05-manufacturing-schema.yaml
+  - include:
+      file: db/changesets/v1.0/06-cross-module-relations.yaml
+  - include:
+      file: db/changesets/v1.0/07-initial-data.yaml

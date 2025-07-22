@@ -1,9 +1,0 @@
-plugins {
-    id("service-conventions")
-}
-
-// Fleet service specific dependencies (if any)
-dependencies {
-    // Add fleet-service specific dependencies here if needed
-    // All common dependencies are inherited from service-conventions
-}
