@@ -1,0 +1,125 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: chiro-erp-ingress
+  namespace: chiro-erp
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
+    nginx.ingress.kubernetes.io/ssl-redirect: "false"
+spec:
+  rules:
+  - host: chiro-erp.local
+    http:
+      paths:
+      - path: /api/gateway
+        pathType: Prefix
+        backend:
+          service:
+            name: api-gateway
+            port:
+              number: 8080
+      - path: /api/finance
+        pathType: Prefix
+        backend:
+          service:
+            name: finance-service
+            port:
+              number: 8080
+      - path: /api/inventory
+        pathType: Prefix
+        backend:
+          service:
+            name: inventory-service
+            port:
+              number: 8080
+      - path: /api/sales
+        pathType: Prefix
+        backend:
+          service:
+            name: sales-service
+            port:
+              number: 8080
+      - path: /api/procurement
+        pathType: Prefix
+        backend:
+          service:
+            name: procurement-service
+            port:
+              number: 8080
+      - path: /api/fleet
+        pathType: Prefix
+        backend:
+          service:
+            name: fleet-service
+            port:
+              number: 8080
+      - path: /api/project
+        pathType: Prefix
+        backend:
+          service:
+            name: project-service
+            port:
+              number: 8080
+      - path: /api/manufacturing
+        pathType: Prefix
+        backend:
+          service:
+            name: manufacturing-service
+            port:
+              number: 8080
+      - path: /api/fieldservice
+        pathType: Prefix
+        backend:
+          service:
+            name: fieldservice-service
+            port:
+              number: 8080
+      - path: /api/repair
+        pathType: Prefix
+        backend:
+          service:
+            name: repair-service
+            port:
+              number: 8080
+      - path: /api/hr
+        pathType: Prefix
+        backend:
+          service:
+            name: hr-service
+            port:
+              number: 8080
+      - path: /api/tenant
+        pathType: Prefix
+        backend:
+          service:
+            name: tenant-management-service
+            port:
+              number: 8080
+      - path: /api/user
+        pathType: Prefix
+        backend:
+          service:
+            name: user-management-service
+            port:
+              number: 8080
+      - path: /api/billing
+        pathType: Prefix
+        backend:
+          service:
+            name: billing-service
+            port:
+              number: 8080
+      - path: /api/pos
+        pathType: Prefix
+        backend:
+          service:
+            name: pos-service
+            port:
+              number: 8080
+      - path: /api/crm
+        pathType: Prefix
+        backend:
+          service:
+            name: crm-service
+            port:
+              number: 8080

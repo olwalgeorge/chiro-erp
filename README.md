@@ -1,90 +1,167 @@
-# Chiro ERP - Modern Microservices Architecture
+# Chiro ERP - Modern Microservices Platform
 
-A modern ERP system built with **Quarkus 3.24.4**, **Kotlin 2.1.21**, and **Java 21**, featuring a consolidated microservices architecture that maintains Domain-Driven Design principles while improving operational efficiency.
+A comprehensive Enterprise Resource Planning (ERP) system built with modern microservices architecture using Quarkus 3.24.4, Kotlin 2.1.21, and the new Quarkus REST implementation.
 
 ## 🏗️ Architecture Overview
 
-The system is organized into **6 consolidated services** that maintain bounded context isolation:
+### Microservices Structure
 
-### 🌐 API Gateway (`port 8080`)
+-   **API Gateway** (`api-gateway`) - Unified entry point with routing, security, and fault tolerance
+-   **Core Business Service** (`consolidated-services/core-business-service`) - Finance, Sales, Procurement, Manufacturing, Inventory
+-   **Customer Relations Service** (`consolidated-services/customer-relations-service`) - CRM and Billing
+-   **Operations Management Service** (`consolidated-services/operations-management-service`) - Field Service, Fleet, POS, Project Management, Repair
+-   **Platform Services** (`consolidated-services/platform-services`) - Notifications and Tenant Management
+-   **Workforce Management Service** (`consolidated-services/workforce-management-service`) - HR and User Management
 
--   **Path**: `api-gateway/`
--   **Purpose**: Central entry point with routing, security, and observability
--   **Features**: CORS, health checks, metrics, fault tolerance
+### Technology Stack
 
-### 💼 Core Business Service (`port 8081`)
+-   **Framework**: Quarkus 3.24.4 (Supersonic Subatomic Java Framework)
+-   **Language**: Kotlin 2.1.21 with serialization support
+-   **REST API**: New Quarkus REST implementation (not legacy JAX-RS)
+-   **Database**: PostgreSQL with Hibernate Reactive Panache
+-   **Build Tool**: Gradle 8.14 with Kotlin DSL
+-   **Java Version**: 21 (LTS)
+-   **Serialization**: Dual strategy - Kotlin for internal, Jackson for external
 
--   **Path**: `consolidated-services/core-business-service/`
--   **Bounded Contexts**: Finance, Inventory, Sales
--   **Database**: H2 (development), Hibernate ORM
+### REST Communication Architecture
 
-### 🤝 Customer Relations Service (`port 8083`)
+-   **REST Server**: `quarkus-rest` for exposing APIs
+-   **REST Client**: `quarkus-rest-client` for inter-service communication
+-   **Dual Serialization**:
+    -   Kotlin serialization for internal service-to-service communication
+    -   Jackson for external API compatibility and client integration
 
--   **Path**: `consolidated-services/customer-relations-service/`
--   **Bounded Contexts**: CRM, Support
--   **Type**: Lightweight REST service
+If you want to learn more about Quarkus, please visit its website: <https://quarkus.io/>.
 
-### ⚙️ Operations Management Service (`port 8082`)
-
--   **Path**: `consolidated-services/operations-management-service/`
--   **Bounded Contexts**: Field Service, Manufacturing, Project Management
--   **Type**: Business process orchestration
-
-### 🛠️ Platform Services (`port 8084`)
-
--   **Path**: `consolidated-services/platform-services/`
--   **Bounded Contexts**: User Management, Tenant Management, Notifications
--   **Database**: H2 (development), Hibernate ORM
-
-### 👥 Workforce Management Service (`port 8085`)
-
--   **Path**: `consolidated-services/workforce-management-service/`
--   **Bounded Contexts**: HR, Fleet Management
--   **Database**: H2 (development), Hibernate ORM
-
-## 🚀 Quick Start
+## 🚀 Quick Start & Development
 
 ### Prerequisites
 
--   **Java 21** or later
--   **Gradle** (included via wrapper)
+-   Java 21 (OpenJDK or Oracle)
+-   PostgreSQL 13+ running locally
+-   Gradle 8.14+ (wrapper included)
 
-### Running the Application
+### Database Setup
 
-1. **Build all services:**
+Each service uses its own PostgreSQL database:
 
-    ```bash
-    ./gradlew clean build
-    ```
+```bash
+# Core Business Service
+createdb chiro_core_business_service
 
-2. **Run individual services in dev mode:**
+# Customer Relations Service
+createdb chiro_customer_relations_service
 
-    ```bash
-    # API Gateway
-    ./gradlew :api-gateway:quarkusDev
+# Operations Management Service
+createdb chiro_operations_management_service
 
-    # Core Business Service
-    ./gradlew :consolidated-services:core-business-service:quarkusDev
+# Platform Services
+createdb chiro_platform_services
 
-    # Platform Services
-    ./gradlew :consolidated-services:platform-services:quarkusDev
-    ```
+# Workforce Management Service
+createdb chiro_workforce_management_service
+```
 
-3. **Access services:**
-    - API Gateway: http://localhost:8080
-    - Core Business: http://localhost:8081
-    - Operations: http://localhost:8082
-    - Customer Relations: http://localhost:8083
-    - Platform Services: http://localhost:8084
-    - Workforce: http://localhost:8085
+### Building the Project
 
-### Health Checks
+#### Full Project Build
 
-All services provide health endpoints:
+```shell script
+./gradlew build
+```
 
--   `http://localhost:{port}/q/health`
--   `http://localhost:{port}/q/health/live`
--   `http://localhost:{port}/q/health/ready`
+#### Individual Service Build
+
+```shell script
+# API Gateway
+./gradlew :api-gateway:build
+
+# Specific consolidated service
+./gradlew :consolidated-services:core-business-service:build
+```
+
+#### Clean Build
+
+```shell script
+./gradlew clean build
+```
+
+### Running in Development Mode
+
+#### API Gateway (Entry Point)
+
+```shell script
+./gradlew :api-gateway:quarkusDev
+```
+
+Access at: http://localhost:8080
+
+#### Individual Services
+
+```shell script
+# Core Business Service (Port 8081)
+./gradlew :consolidated-services:core-business-service:quarkusDev
+
+# Customer Relations Service (Port 8082)
+./gradlew :consolidated-services:customer-relations-service:quarkusDev
+
+# Operations Management Service (Port 8083)
+./gradlew :consolidated-services:operations-management-service:quarkusDev
+
+# Platform Services (Port 8084)
+./gradlew :consolidated-services:platform-services:quarkusDev
+
+# Workforce Management Service (Port 8085)
+./gradlew :consolidated-services:workforce-management-service:quarkusDev
+```
+
+## 🔧 Development Tools
+
+### Dependency Management
+
+Use the comprehensive dependency standardization script:
+
+```powershell
+# Update all service dependencies
+.\fix-dependencies.ps1
+
+# Dry run to preview changes
+.\fix-dependencies.ps1 -DryRun
+```
+
+### Database Configuration Management
+
+Standardize all database configurations:
+
+```powershell
+# Update all application.properties to use PostgreSQL
+.\fix-database-config.ps1
+
+# Preview changes
+.\fix-database-config.ps1 -DryRun
+```
+
+### File Protection System
+
+Automated backup and git integration:
+
+```powershell
+# Setup file protection
+.\setup-file-protection.ps1
+
+# Manual backup creation
+.\create-backup.ps1
+```
+
+## Running the application in dev mode
+
+You can run your application in dev mode that enables live coding using:
+
+```shell script
+./gradlew quarkusDev
+```
+
+> **_NOTE:_** Quarkus now ships with a Dev UI, which is available in dev mode only at <http://localhost:8080/q/dev/>.
 
 ## Packaging and running the application
 
@@ -125,116 +202,15 @@ You can then execute your native executable with: `./build/chiro-erp-1.0.0-SNAPS
 
 If you want to learn more about building native executables, please consult <https://quarkus.io/guides/gradle-tooling>.
 
-## 🛠️ Development Tools
+## Related Guides
 
-### PowerShell Scripts
+-   Kotlin ([guide](https://quarkus.io/guides/kotlin)): Write your services in Kotlin
+-   JDBC Driver - PostgreSQL ([guide](https://quarkus.io/guides/datasource)): Connect to the PostgreSQL database via JDBC
 
-The project includes comprehensive PowerShell automation scripts:
+## Provided Code
 
--   **`fix-dependencies.ps1`**: Standardizes dependencies and configurations across all services
--   **`validate-dependencies.ps1`**: Validates build configurations
--   **`deploy-comprehensive.ps1`**: Comprehensive deployment automation
+### REST
 
-### Running the Fix Script
+Easily start your REST Web Services
 
-```powershell
-# Dry run to see what would be changed
-.\fix-dependencies.ps1 -DryRun
-
-# Apply fixes
-.\fix-dependencies.ps1
-```
-
-## 🏛️ Technology Stack
-
--   **Runtime**: Java 21
--   **Language**: Kotlin 2.1.21
--   **Framework**: Quarkus 3.24.4
--   **Database**: H2 (development), Hibernate ORM
--   **Build Tool**: Gradle with Kotlin DSL
--   **Architecture**: REST-first microservices
--   **Serialization**: Kotlin Serialization
--   **Testing**: JUnit 5, REST Assured
-
-## 📂 Project Structure
-
-```
-chiro-erp/
-├── api-gateway/                           # API Gateway service
-├── consolidated-services/                 # Business services
-│   ├── core-business-service/            # Finance, Inventory, Sales
-│   ├── customer-relations-service/       # CRM, Support
-│   ├── operations-management-service/    # Field Service, Manufacturing
-│   ├── platform-services/               # User/Tenant Management
-│   └── workforce-management-service/     # HR, Fleet
-├── kubernetes/                           # K8s deployment manifests
-├── docs/                                # Architecture documentation
-├── scripts/                             # Development automation
-└── *.ps1                               # PowerShell automation scripts
-```
-
-## 🎯 Domain-Driven Design
-
-The architecture maintains **bounded context isolation** within consolidated services through:
-
--   **Package-based separation** of domain models
--   **Independent application services** per context
--   **Separate infrastructure adapters** per context
--   **Context-specific REST endpoints**
-
-See [BOUNDED_CONTEXTS_ARCHITECTURE.md](BOUNDED_CONTEXTS_ARCHITECTURE.md) for detailed information.
-
-## 📋 Available Commands
-
-### Build & Test
-
-```bash
-./gradlew clean build                    # Full build
-./gradlew test                          # Run tests
-./gradlew build -x test                 # Build without tests
-```
-
-### Development
-
-```bash
-./gradlew quarkusDev                    # Run with live reload
-./gradlew quarkusUpdate                 # Update Quarkus dependencies
-```
-
-### Native Compilation
-
-```bash
-./gradlew build -Dquarkus.native.enabled=true                    # Native build
-./gradlew build -Dquarkus.native.enabled=true -Dquarkus.native.container-build=true    # Container native build
-```
-
-## 📚 Documentation
-
--   [Bounded Contexts Architecture](BOUNDED_CONTEXTS_ARCHITECTURE.md)
--   [Deployment Guide](DEPLOYMENT.md)
--   [Development Productivity Tools](PRODUCTIVITY_TOOLS.md)
--   [Recent Optimizations](RECENT_OPTIMIZATIONS_SUMMARY.md)
-
-## 🔧 Configuration
-
-All services use standardized configuration patterns:
-
--   **Ports**: Sequential assignment (8080-8085)
--   **Database**: H2 for development, configurable for production
--   **Health checks**: Enabled on all services
--   **Logging**: Structured with DEBUG level for org.chiro packages
-
-## 🚢 Deployment
-
-The project supports multiple deployment strategies:
-
--   **Local development**: Individual service startup
--   **Docker**: Containerized deployment
--   **Kubernetes**: Production-ready manifests in `/kubernetes`
-
-## 🤝 Contributing
-
-1. Use the `fix-dependencies.ps1` script to maintain consistent configurations
-2. Follow the established bounded context patterns
-3. Ensure all services build successfully with `./gradlew clean build`
-4. Add appropriate tests for new functionality
+[Related guide section...](https://quarkus.io/guides/getting-started-reactive#reactive-jax-rs-resources)

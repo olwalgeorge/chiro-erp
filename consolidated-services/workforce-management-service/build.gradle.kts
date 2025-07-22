@@ -11,17 +11,21 @@ repositories {
 }
 
 dependencies {
-implementation(enforcedPlatform("io.quarkus.platform:quarkus-bom:3.24.4"))
+    implementation(enforcedPlatform("io.quarkus.platform:quarkus-bom:3.24.4"))
     
     // Core Quarkus dependencies
     implementation("io.quarkus:quarkus-kotlin")
     implementation("io.quarkus:quarkus-arc")
-    implementation("io.quarkus:quarkus-rest")
-    implementation("io.quarkus:quarkus-rest-kotlin-serialization")
     
-    // Database dependencies (simplified for H2)
-    implementation("io.quarkus:quarkus-hibernate-orm")
-    implementation("io.quarkus:quarkus-jdbc-h2")
+    // REST Server (new Quarkus REST for exposing APIs)
+    implementation("io.quarkus:quarkus-rest")
+    
+    // REST Client (new Quarkus REST for calling other services when needed)
+    implementation("io.quarkus:quarkus-rest-client")
+    
+    // Serialization: Kotlin for internal, Jackson for external if needed
+    implementation("io.quarkus:quarkus-rest-kotlin-serialization")           // Internal service communication
+    implementation("io.quarkus:quarkus-rest-jackson")                        // External API compatibility
     
     // Configuration and observability
     implementation("io.quarkus:quarkus-config-yaml")

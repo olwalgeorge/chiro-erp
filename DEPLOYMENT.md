@@ -1,28 +1,37 @@
-# 🚀 CHIRO ERP - COMPLETE DEPLOYMENT GUIDE
+# 🚀 CHIRO ERP - DEPLOYMENT OVERVIEW
 
-## Overview
+## 📋 Documentation Index
 
-This is the **SINGLE, COMPLETE** deployment solution for the Chiro ERP system. Everything you need is contained in these files:
+This deployment overview provides links to comprehensive deployment documentation:
 
--   `Dockerfile.consolidated` - The ONLY Dockerfile needed
--   `deploy-final.ps1` - The ONLY deployment script needed
--   `docker-compose.consolidated.yml` - The ONLY Docker Compose file needed
+-   **[DEPLOYMENT_GUIDE.md](./DEPLOYMENT_GUIDE.md)** - Complete deployment guide with Docker, Kubernetes, and native compilation
+-   **[DEPENDENCY_ARCHITECTURE.md](./DEPENDENCY_ARCHITECTURE.md)** - Detailed dependency architecture documentation
+-   **[README.md](./README.md)** - Quick start and development guide
 
-## 🏗️ Architecture
+## 🏗️ Current Architecture (Updated)
 
-### Infrastructure Services (Always Required)
+### Modern Microservices Stack
 
--   **PostgreSQL 15** - Primary database on port 5432
--   **Apache Kafka 7.4.0** - Message broker on port 9092
--   **Apache Zookeeper 7.4.0** - Kafka coordination service
+-   **Framework**: Quarkus 3.24.4 with new REST implementation
+-   **Language**: Kotlin 2.1.21 with serialization support
+-   **Database**: PostgreSQL with Hibernate Reactive Panache
+-   **Build**: Gradle 8.14 with Kotlin DSL
+-   **Java**: OpenJDK 21 LTS
 
-### Application Services (Consolidated Microservices)
+### Service Architecture
 
--   **core-business-service** - Core business logic and financial operations
--   **customer-relations-service** - CRM and customer management
--   **operations-management-service** - Operations and supply chain
--   **platform-services** - Shared platform utilities
--   **workforce-management-service** - HR and workforce management
+-   **API Gateway** (`api-gateway`) - Unified entry point with security and routing
+-   **Core Business Service** (`consolidated-services/core-business-service`) - Finance, Sales, Procurement, Manufacturing, Inventory
+-   **Customer Relations Service** (`consolidated-services/customer-relations-service`) - CRM and Billing
+-   **Operations Management Service** (`consolidated-services/operations-management-service`) - Field Service, Fleet, POS, Project Management, Repair
+-   **Platform Services** (`consolidated-services/platform-services`) - Notifications and Tenant Management
+-   **Workforce Management Service** (`consolidated-services/workforce-management-service`) - HR and User Management
+
+### REST Communication
+
+-   **REST Server**: `quarkus-rest` for exposing APIs
+-   **REST Client**: `quarkus-rest-client` for inter-service communication
+-   **Dual Serialization**: Kotlin for internal, Jackson for external APIs
 
 ## ⚡ Quick Start
 

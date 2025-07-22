@@ -1,0 +1,20 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: fieldservice-service
+  namespace: chiro-erp
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: fieldservice-service
+  template:
+    metadata:
+      labels:
+        app: fieldservice-service
+    spec:
+      containers:
+      - name: fieldservice-service
+        image: chiro-erp/fieldservice-service:latest
+        ports:
+        - containerPort: 8080

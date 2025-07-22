@@ -42,6 +42,101 @@
         }
     ],
     "settings": {
+        // === FORMATTING PREVENTION SETTINGS ===
+        "editor.formatOnSave": false,
+        "editor.formatOnPaste": false,
+        "editor.formatOnType": false,
+        "editor.autoIndent": "none",
+        "editor.insertSpaces": true,
+        "editor.tabSize": 4,
+        "editor.detectIndentation": false,
+        
+        // === LANGUAGE SPECIFIC FORMATTING PREVENTION ===
+        "[powershell]": {
+            "editor.formatOnSave": false,
+            "editor.formatOnPaste": false,
+            "editor.formatOnType": false,
+            "editor.autoIndent": "none",
+            "editor.insertSpaces": true,
+            "editor.tabSize": 4,
+            "editor.detectIndentation": false
+        },
+        "[kotlin]": {
+            "editor.formatOnSave": false,
+            "editor.formatOnPaste": false,
+            "editor.formatOnType": false,
+            "editor.autoIndent": "none",
+            "editor.insertSpaces": true,
+            "editor.tabSize": 4,
+            "editor.detectIndentation": false
+        },
+        "[gradle]": {
+            "editor.formatOnSave": false,
+            "editor.formatOnPaste": false,
+            "editor.formatOnType": false,
+            "editor.autoIndent": "none",
+            "editor.insertSpaces": true,
+            "editor.tabSize": 4,
+            "editor.detectIndentation": false
+        },
+        "[markdown]": {
+            "editor.formatOnSave": false,
+            "editor.formatOnPaste": false,
+            "editor.formatOnType": false,
+            "editor.autoIndent": "none",
+            "editor.insertSpaces": true,
+            "editor.tabSize": 2,
+            "editor.detectIndentation": false
+        },
+        "[json]": {
+            "editor.formatOnSave": false,
+            "editor.formatOnPaste": false,
+            "editor.formatOnType": false,
+            "editor.autoIndent": "none",
+            "editor.insertSpaces": true,
+            "editor.tabSize": 2,
+            "editor.detectIndentation": false
+        },
+        
+        // === DISABLE AUTO-FORMATTING EXTENSIONS ===
+        "powershell.codeFormatting.preset": "None",
+        "powershell.codeFormatting.autoCorrectAliases": false,
+        "powershell.codeFormatting.useConstantStrings": false,
+        "powershell.codeFormatting.useCorrectCasing": false,
+        "powershell.codeFormatting.trimWhitespaceAroundPipe": false,
+        "powershell.codeFormatting.addWhitespaceAroundPipe": false,
+        "powershell.codeFormatting.ignoreOneLineBlock": true,
+        "powershell.codeFormatting.newLineAfterOpenBrace": false,
+        "powershell.codeFormatting.newLineAfterCloseBrace": false,
+        "powershell.codeFormatting.whitespaceBeforeOpenBrace": false,
+        "powershell.codeFormatting.whitespaceBeforeOpenParen": false,
+        "powershell.codeFormatting.whitespaceAroundOperator": false,
+        "powershell.codeFormatting.whitespaceAfterSeparator": false,
+        "powershell.codeFormatting.whitespaceBetweenParameters": false,
+        "powershell.codeFormatting.whitespaceInsideBrace": false,
+        
+        // === KOTLIN & GRADLE FORMATTING PREVENTION ===
+        "kotlin.formatting.enabled": false,
+        "gradle.formatting.enabled": false,
+        
+        // === PREVENT FILE MODIFICATIONS ===
+        "files.trimTrailingWhitespace": false,
+        "files.trimFinalNewlines": false,
+        "files.insertFinalNewline": false,
+        
+        // === PREVENT AUTO-SUGGESTIONS THAT MODIFY CODE ===
+        "editor.suggest.insertMode": "insert",
+        "editor.acceptSuggestionOnCommitCharacter": false,
+        "editor.acceptSuggestionOnEnter": "off",
+        "editor.quickSuggestions": {
+            "other": false,
+            "comments": false,
+            "strings": false
+        },
+        "editor.codeActionsOnSave": {},
+        "editor.lightbulb.enabled": false,
+        
+        // === ORIGINAL WORKSPACE SETTINGS ===
         "java.configuration.updateBuildConfiguration": "automatic",
         "java.compile.nullAnalysis.mode": "automatic",
         "java.import.gradle.enabled": true,

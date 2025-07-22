@@ -1,0 +1,40 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+# Namespace for all resources
+namespace: chiro-erp
+
+# Base resources
+resources:
+  - base/namespace.yml
+  - services/core-business-service/deployment.yml
+  - services/core-business-service/service.yml
+  - services/operations-management-service/deployment.yml
+  - services/operations-management-service/service.yml
+  - services/customer-relations-service/deployment.yml
+  - services/customer-relations-service/service.yml
+  - services/platform-services-service/deployment.yml
+  - services/platform-services-service/service.yml
+  - services/workforce-management-service/deployment.yml
+  - services/workforce-management-service/service.yml
+  - api-gateway/deployment.yml
+  - api-gateway/service.yml
+  - ingress/ingress.yml
+
+# Common labels
+commonLabels:
+  app.kubernetes.io/name: chiro-erp
+  app.kubernetes.io/version: v1.0.0
+
+# Images (update these with your registry)
+images:
+  - name: chiro-erp/core-business-service
+    newTag: latest
+  - name: chiro-erp/operations-management-service
+    newTag: latest
+  - name: chiro-erp/customer-relations-service
+    newTag: latest
+  - name: chiro-erp/platform-services-service
+    newTag: latest
+  - name: chiro-erp/workforce-management-service
+    newTag: latest

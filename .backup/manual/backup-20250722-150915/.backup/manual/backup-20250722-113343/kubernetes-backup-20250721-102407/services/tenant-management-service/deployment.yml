@@ -1,0 +1,20 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: tenant-management-service
+  namespace: chiro-erp
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: tenant-management-service
+  template:
+    metadata:
+      labels:
+        app: tenant-management-service
+    spec:
+      containers:
+      - name: tenant-management-service
+        image: chiro-erp/tenant-management-service:latest
+        ports:
+        - containerPort: 8080

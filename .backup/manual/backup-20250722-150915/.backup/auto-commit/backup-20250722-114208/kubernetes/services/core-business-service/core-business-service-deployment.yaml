@@ -1,0 +1,65 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: core-business-service
+  namespace: chiro-erp
+  labels:
+    app: core-business-service
+    version: v1
+    tier: backend
+spec:
+  replicas: 2
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  selector:
+    matchLabels:
+      app: core-business-service
+  template:
+    metadata:
+      labels:
+        app: core-business-service
+        version: v1
+    spec:
+      containers:
+      - name: core-business-service
+        image: chiro-erp/core-business-service:latest
+        ports:
+        - containerPort: 8081
+          name: http
+        env:
+        - name: QUARKUS_HTTP_PORT
+          value: "8081"
+        - name: QUARKUS_PROFILE
+          value: "prod"
+        - name: MODULES
+          value: "billing, finance, sales, inventory, procurement, manufacturing"
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "250m"
+          limits:
+            memory: "1Gi"
+            cpu: "500m"
+        livenessProbe:
+          httpGet:
+            path: /q/health/live
+            port: 8081
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /q/health/ready
+            port: 8081
+          initialDelaySeconds: 5
+          periodSeconds: 5
+        startupProbe:
+          httpGet:
+            path: /q/health/started
+            port: 8081
+          initialDelaySeconds: 10
+          periodSeconds: 5
+          failureThreshold: 30
+---

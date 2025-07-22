@@ -1,0 +1,20 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: crm-service
+  namespace: chiro-erp
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: crm-service
+  template:
+    metadata:
+      labels:
+        app: crm-service
+    spec:
+      containers:
+      - name: crm-service
+        image: chiro-erp/crm-service:latest
+        ports:
+        - containerPort: 8080
