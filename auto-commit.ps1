@@ -13,10 +13,6 @@ if (!$status -and !$Force) {
     return
 }
 
-# Create backup before committing
-Write-Host "📦 Creating backup before auto-commit..." -ForegroundColor Yellow
-& .\create-backup.ps1 -Type "auto-commit"
-
 # Add all tracked files that have been modified
 Write-Host "📝 Adding modified files..." -ForegroundColor Yellow
 git add -u
