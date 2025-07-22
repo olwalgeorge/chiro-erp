@@ -2,6 +2,52 @@
 
 A comprehensive Enterprise Resource Planning (ERP) system built with modern microservices architecture using Quarkus 3.24.4, Kotlin 2.1.21, and the new Quarkus REST implementation.
 
+## 📁 Project Organization
+
+This workspace is now organized for better maintainability:
+
+```
+chiro-erp/
+├── 📚 docs/                    # All documentation 
+├── 🔧 scripts/                 # All automation scripts
+├── 💼 consolidated-services/   # Business service implementations
+├── 🚪 api-gateway/            # API Gateway service
+├── ☸️ kubernetes/             # Kubernetes manifests
+├── ⚙️ config/                  # Configuration files
+└── 🐳 docker-compose.*.yml    # Docker composition files
+```
+
+## 🚀 Quick Start
+
+### Deployment
+```powershell
+# Check system status
+.\scripts\deploy-final.ps1 -Action status
+
+# Deploy everything (recommended)
+.\scripts\deploy-final.ps1 -Action full
+```
+
+### Development
+```powershell
+# Fix dependencies and validate structure
+.\scripts\fix-dependencies.ps1
+.\scripts\verify-service-structure-consistency.ps1
+
+# Build and test
+.\gradlew clean build
+```
+
+## 📚 Documentation
+
+Comprehensive documentation is available in the `docs/` directory:
+
+- **[docs/README.md](./docs/README.md)** - Documentation index and navigation
+- **[docs/DEPLOYMENT.md](./docs/DEPLOYMENT.md)** - Quick deployment reference
+- **[docs/DEPLOYMENT_GUIDE.md](./docs/DEPLOYMENT_GUIDE.md)** - Complete deployment guide
+- **[docs/BOUNDED_CONTEXTS_ARCHITECTURE.md](./docs/BOUNDED_CONTEXTS_ARCHITECTURE.md)** - Domain-Driven Design architecture
+- **[docs/DEPENDENCY_ARCHITECTURE.md](./docs/DEPENDENCY_ARCHITECTURE.md)** - Technical dependency documentation
+
 ## 🏗️ Architecture Overview
 
 ### Microservices Structure

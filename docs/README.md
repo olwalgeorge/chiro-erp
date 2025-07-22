@@ -1,12 +1,140 @@
-# Chiro-ERP Documentation
+# 📚 Chiro ERP Documentation
 
-## Overview
+Welcome to the comprehensive documentation for the Chiro ERP platform. This documentation covers architecture, deployment, development, and maintenance procedures.
 
-Chiro-ERP is a comprehensive, cloud-native Enterprise Resource Planning system built with modern microservices architecture, Domain-Driven Design (DDD), and Clean Architecture principles.
+## 📋 Documentation Index
 
-## 📚 Documentation Structure
+### 🚀 Deployment & Operations
+- **[DEPLOYMENT.md](./DEPLOYMENT.md)** - Quick deployment overview and commands
+- **[DEPLOYMENT_GUIDE.md](./DEPLOYMENT_GUIDE.md)** - Complete deployment guide with Docker, Kubernetes, and native compilation
+- **[DEPLOYMENT_IMPROVEMENTS.md](./DEPLOYMENT_IMPROVEMENTS.md)** - Recent deployment script enhancements
 
-### Architecture Documentation
+### 🏗️ Architecture & Design
+- **[BOUNDED_CONTEXTS_ARCHITECTURE.md](./BOUNDED_CONTEXTS_ARCHITECTURE.md)** - Domain-Driven Design and bounded contexts implementation
+- **[DEPENDENCY_ARCHITECTURE.md](./DEPENDENCY_ARCHITECTURE.md)** - Detailed dependency architecture and REST communication patterns
+
+### 📈 Recent Changes & Optimizations
+- **[RECENT_OPTIMIZATIONS_SUMMARY.md](./RECENT_OPTIMIZATIONS_SUMMARY.md)** - Summary of recent build system optimizations and error resolutions
+
+## 🏗️ System Overview
+
+The Chiro ERP platform is a modern microservices-based Enterprise Resource Planning system built with:
+
+### Technology Stack
+- **Framework**: Quarkus 3.24.4 with new REST implementation
+- **Language**: Kotlin 2.1.21 with serialization support
+- **Database**: PostgreSQL with Hibernate Reactive Panache
+- **Build**: Gradle 8.14 with Kotlin DSL
+- **Java**: OpenJDK 21 LTS
+- **Container**: Docker with Alpine Linux base images
+
+### Service Architecture
+1. **API Gateway** - Unified entry point with security and routing
+2. **Core Business Service** - Finance, Sales, Procurement, Manufacturing, Inventory
+3. **Customer Relations Service** - CRM and Billing
+4. **Operations Management Service** - Field Service, Fleet, POS, Project Management, Repair
+5. **Platform Services** - Notifications and Tenant Management
+6. **Workforce Management Service** - HR and User Management
+
+## 🚀 Quick Start
+
+### For Deployment
+```powershell
+# Check system status
+.\scripts\deploy-final.ps1 -Action status
+
+# Deploy everything
+.\scripts\deploy-final.ps1 -Action full
+```
+
+### For Development
+```powershell
+# Fix dependencies and validate structure
+.\scripts\fix-dependencies.ps1
+.\scripts\verify-service-structure-consistency.ps1
+
+# Build and test
+.\gradlew clean build
+```
+
+## 📁 File Organization
+
+```
+chiro-erp/
+├── docs/                     # 📚 All documentation (this folder)
+├── scripts/                  # 🔧 All PowerShell scripts
+├── consolidated-services/    # 💼 Business service implementations
+├── api-gateway/             # 🚪 API Gateway service
+├── kubernetes/              # ☸️ Kubernetes manifests
+├── config/                  # ⚙️ Configuration files
+└── docker-compose.*.yml     # 🐳 Docker composition files
+```
+
+## 🎯 Documentation Conventions
+
+### Document Types
+- **Overview documents** (like DEPLOYMENT.md) provide quick reference and commands
+- **Guide documents** (like DEPLOYMENT_GUIDE.md) provide step-by-step instructions
+- **Architecture documents** explain system design and technical decisions
+- **Summary documents** track changes and optimizations
+
+### Navigation
+- All documentation uses relative links for cross-references
+- External links to tools and frameworks are provided where helpful
+- Code examples are provided in PowerShell (Windows) format
+
+## 🔍 Finding Information
+
+### For Deployment Issues
+1. Start with [DEPLOYMENT.md](./DEPLOYMENT.md) for quick commands
+2. Check [DEPLOYMENT_GUIDE.md](./DEPLOYMENT_GUIDE.md) for detailed procedures
+3. Review [DEPLOYMENT_IMPROVEMENTS.md](./DEPLOYMENT_IMPROVEMENTS.md) for recent fixes
+
+### For Architecture Questions
+1. Review [BOUNDED_CONTEXTS_ARCHITECTURE.md](./BOUNDED_CONTEXTS_ARCHITECTURE.md) for domain design
+2. Check [DEPENDENCY_ARCHITECTURE.md](./DEPENDENCY_ARCHITECTURE.md) for technical dependencies
+
+### For Recent Changes
+1. See [RECENT_OPTIMIZATIONS_SUMMARY.md](./RECENT_OPTIMIZATIONS_SUMMARY.md) for the latest updates
+
+## 🛠️ Scripts Reference
+
+All automation scripts are located in the `scripts/` directory:
+
+### Deployment Scripts
+- `deploy-final.ps1` - Main deployment script with multiple actions
+- `k8s-deploy.ps1` - Kubernetes-specific deployment
+
+### Maintenance Scripts
+- `fix-dependencies.ps1` - Standardize Gradle dependencies
+- `verify-service-structure-consistency.ps1` - Validate service structure
+- `standardize-k8s-manifests.ps1` - Ensure K8s manifest consistency
+
+### Backup & Recovery Scripts
+- `create-backup.ps1` - Create system backups
+- `restore-from-backup.ps1` - Restore from backups
+- `backup-and-cleanup-old-services.ps1` - Clean up old service versions
+
+### Development Scripts
+- `dev-productivity.ps1` - Development environment setup
+- `auto-commit.ps1` - Automated commit processes
+- `check-structural-consistency.ps1` - Validate project structure
+
+## 📞 Support & Troubleshooting
+
+### Common Issues
+- **Build failures**: Check [RECENT_OPTIMIZATIONS_SUMMARY.md](./RECENT_OPTIMIZATIONS_SUMMARY.md)
+- **Deployment issues**: See troubleshooting section in [DEPLOYMENT.md](./DEPLOYMENT.md)
+- **Docker problems**: Review Docker-specific guidance in [DEPLOYMENT_GUIDE.md](./DEPLOYMENT_GUIDE.md)
+
+### System Requirements
+- **Minimum**: 8GB RAM, 4 CPU cores, 10GB disk space
+- **Recommended**: 16GB RAM, 8 CPU cores, 20GB disk space
+- **Docker Desktop**: Latest version with WSL2 backend (Windows)
+
+---
+
+**This documentation is actively maintained and reflects the current state of the Chiro ERP platform as of July 2025.**
 
 -   [System Architecture](./architecture/system-architecture.md) - Overall system design and patterns
 -   [Domain Model](./architecture/domain-model.md) - Bounded contexts and domain relationships

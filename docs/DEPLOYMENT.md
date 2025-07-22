@@ -38,31 +38,31 @@ This deployment overview provides links to comprehensive deployment documentatio
 ### 1. Check Current Status
 
 ```powershell
-.\deploy-final.ps1 -Action status
+.\scripts\deploy-final.ps1 -Action status
 ```
 
 ### 2. Deploy Everything (Infrastructure + Applications)
 
 ```powershell
-.\deploy-final.ps1 -Action full
+.\scripts\deploy-final.ps1 -Action full
 ```
 
 ### 3. Deploy Only Infrastructure
 
 ```powershell
-.\deploy-final.ps1 -Action infrastructure
+.\scripts\deploy-final.ps1 -Action infrastructure
 ```
 
 ### 4. Deploy Only Applications
 
 ```powershell
-.\deploy-final.ps1 -Action applications
+.\scripts\deploy-final.ps1 -Action applications
 ```
 
 ### 5. Clean Up Everything
 
 ```powershell
-.\deploy-final.ps1 -Action cleanup
+.\scripts\deploy-final.ps1 -Action cleanup
 ```
 
 ## 🔧 Manual Commands (If Needed)
@@ -153,9 +153,9 @@ curl http://localhost:8081/q/health
 ```
 chiro-erp/
 ├── Dockerfile.consolidated     # ONLY Dockerfile needed
-├── deploy-final.ps1           # ONLY deployment script needed
+├── scripts/deploy-final.ps1           # ONLY deployment script needed
 ├── docker-compose.consolidated.yml  # ONLY compose file needed
-├── DEPLOYMENT.md              # This documentation
+├── docs/DEPLOYMENT.md              # This documentation
 ├── consolidated-services/     # Source code for all services
 ├── buildSrc/                 # Gradle build conventions
 └── deployment-backup/        # Backup of old deployment files
@@ -165,20 +165,20 @@ chiro-erp/
 
 ### Development Deployment
 
--   Use `deploy-final.ps1 -Action infrastructure` first
+-   Use `scripts\deploy-final.ps1 -Action infrastructure` first
 -   Build and test services individually
 -   Good for development and testing
 
 ### Production Deployment
 
--   Use `deploy-final.ps1 -Action full`
+-   Use `scripts\deploy-final.ps1 -Action full`
 -   Deploys everything in the correct order
 -   Includes health checks and monitoring
 
 ### Troubleshooting Deployment
 
--   Use `deploy-final.ps1 -Action status` to check current state
--   Use `deploy-final.ps1 -Action cleanup` to start fresh
+-   Use `scripts\deploy-final.ps1 -Action status` to check current state
+-   Use `scripts\deploy-final.ps1 -Action cleanup` to start fresh
 -   Check Docker Desktop logs for detailed error information
 
 ## 🔐 Security Notes
