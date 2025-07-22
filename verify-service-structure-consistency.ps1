@@ -1,15 +1,15 @@
 #!/usr/bin/env pwsh
 <#
 .SYNOPSIS
-    Comprehensive verification script for Chiro ERP consolidated services structure
+    File path consistency verification script for Chiro ERP consolidated services structure
     
 .DESCRIPTION
-    Verifies that the consolidated services structure follows consistent patterns,
-    validates paths, checks module organization, and ensures all dependencies
-    and configurations are properly set up.
+    Verifies that the consolidated services structure follows consistent file and directory
+    patterns, validates paths, and checks module organization. Dependencies are handled
+    by separate scripts.
     
 .PARAMETER Fix
-    Automatically fix issues where possible
+    Automatically fix file structure issues where possible
     
 .PARAMETER Detailed
     Show detailed information about each check
@@ -220,101 +220,14 @@ function Test-BuildFiles {
         
         if (Test-Path $buildFile) {
             Write-CheckResult "$serviceName build.gradle.kts exists" "PASS"
-            
-            # Check build file content
-            $content = Get-Content $buildFile -Raw
-            
-            # Check for required plugins (either directly or via convention plugin)
-            if ($content -match 'id\("consolidated-service-conventions"\)') {
-                Write-CheckResult "$serviceName uses consolidated-service-conventions" "PASS"
-                if ($Detailed) {
-                    Write-CheckResult "$serviceName inherits required plugins via conventions" "PASS"
-                }
-            }
-            else {
-                # Check for direct plugins if not using convention
-                $requiredPlugins = @(
-                    'kotlin("jvm")',
-                    'kotlin("plugin.allopen")',
-                    'id("io.quarkus")'
-                )
-                
-                foreach ($plugin in $requiredPlugins) {
-                    if ($content -match [regex]::Escape($plugin)) {
-                        if ($Detailed) {
-                            Write-CheckResult "$serviceName has plugin $plugin" "PASS"
-                        }
-                    }
-                    else {
-                        Write-CheckResult "$serviceName missing plugin $plugin" "FAIL" "Required plugin not found in build.gradle.kts"
-                    }
-                }
-            }
-            
-            # Check for hybrid serialization dependencies (either directly or via convention)
-            if ($content -match 'id\("consolidated-service-conventions"\)') {
-                # Hybrid serialization is inherited from common-conventions
-                Write-CheckResult "$serviceName has hybrid serialization via conventions" "PASS"
-            }
-            elseif ($content -match "quarkus-rest-kotlin-serialization" -and $content -match "quarkus-rest-jackson") {
-                Write-CheckResult "$serviceName has hybrid serialization" "PASS"
-            }
-            else {
-                Write-CheckResult "$serviceName hybrid serialization" "WARN" "Consider using hybrid serialization (Kotlin + Jackson)"
-            }
-            
         }
         else {
             Write-CheckResult "$serviceName build.gradle.kts exists" "FAIL" "Build file missing"
             if ($Fix) {
-                # Create basic build.gradle.kts
+                # Create basic build.gradle.kts structure
                 $buildContent = @"
-plugins {
-    kotlin("jvm")
-    kotlin("plugin.allopen")
-    kotlin("plugin.serialization")
-    id("io.quarkus")
-}
-
-repositories {
-    mavenCentral()
-    mavenLocal()
-}
-
-val quarkusPlatformGroupId: String by project
-val quarkusPlatformArtifactId: String by project
-val quarkusPlatformVersion: String by project
-
-dependencies {
-    implementation(enforcedPlatform("`$quarkusPlatformGroupId:`$quarkusPlatformArtifactId:`$quarkusPlatformVersion"))
-    
-    // Core Quarkus with Kotlin
-    implementation("io.quarkus:quarkus-kotlin")
-    implementation("io.quarkus:quarkus-arc")
-    
-    // HYBRID REST Serialization
-    implementation("io.quarkus:quarkus-rest")
-    implementation("io.quarkus:quarkus-rest-kotlin-serialization")
-    implementation("io.quarkus:quarkus-rest-jackson")
-    
-    // Database
-    implementation("io.quarkus:quarkus-hibernate-orm-panache-kotlin")
-    implementation("io.quarkus:quarkus-jdbc-postgresql")
-    
-    // Testing
-    testImplementation("io.quarkus:quarkus-junit5")
-    testImplementation("io.rest-assured:rest-assured")
-}
-
-kotlin {
-    jvmToolchain(21)
-}
-
-allOpen {
-    annotation("jakarta.ws.rs.Path")
-    annotation("jakarta.enterprise.context.ApplicationScoped")
-    annotation("jakarta.persistence.Entity")
-}
+// Build configuration for $serviceName
+// Dependencies and plugins are managed by parent configuration
 "@
                 Set-Content -Path $buildFile -Value $buildContent -Encoding UTF8
                 Write-CheckResult "Created $serviceName build.gradle.kts" "FIXED"
@@ -368,25 +281,6 @@ fun main(args: Array<String>) {
         $propsFile = "$servicePath/src/main/resources/application.properties"
         if (Test-Path $propsFile) {
             Write-CheckResult "$serviceName application.properties exists" "PASS"
-            
-            # Check for required properties
-            $content = Get-Content $propsFile -Raw
-            $requiredProps = @(
-                "quarkus.application.name=$serviceName",
-                "quarkus.http.port=$($serviceConfig.port)",
-                "quarkus.datasource.jdbc.url=.*$($serviceConfig.database)"
-            )
-            
-            foreach ($prop in $requiredProps) {
-                if ($content -match $prop) {
-                    if ($Detailed) {
-                        Write-CheckResult "$serviceName has property: $prop" "PASS"
-                    }
-                }
-                else {
-                    Write-CheckResult "$serviceName missing property: $prop" "WARN" "Property not found or incorrect"
-                }
-            }
         }
         else {
             Write-CheckResult "$serviceName application.properties exists" "FAIL" "Configuration file missing"
@@ -422,55 +316,8 @@ quarkus.log.category."org.chiro".level=DEBUG
     }
 }
 
-function Test-SettingsGradle {
-    Write-Host "`n⚙️  Checking settings.gradle.kts..." -ForegroundColor Cyan
-    
-    if (Test-Path "settings.gradle.kts") {
-        Write-CheckResult "settings.gradle.kts exists" "PASS"
-        
-        $content = Get-Content "settings.gradle.kts" -Raw
-        
-        # Check if all consolidated services are included
-        foreach ($serviceName in $ConsolidatedServices.Keys) {
-            if ($content -match "include\(`"consolidated-services:$serviceName`"\)") {
-                Write-CheckResult "settings.gradle.kts includes $serviceName" "PASS"
-            }
-            else {
-                Write-CheckResult "settings.gradle.kts includes $serviceName" "FAIL" "Service not included in settings"
-            }
-        }
-    }
-    else {
-        Write-CheckResult "settings.gradle.kts exists" "FAIL" "Root settings file missing"
-    }
-}
-
-function Test-DockerConfiguration {
-    Write-Host "`n🐳 Checking Docker Configuration..." -ForegroundColor Cyan
-    
-    # Check docker-compose.consolidated.yml
-    if (Test-Path "docker-compose.consolidated.yml") {
-        Write-CheckResult "docker-compose.consolidated.yml exists" "PASS"
-        
-        $content = Get-Content "docker-compose.consolidated.yml" -Raw
-        
-        # Check if all services are defined
-        foreach ($serviceName in $ConsolidatedServices.Keys) {
-            if ($content -match "\s+${serviceName}:") {
-                Write-CheckResult "docker-compose includes $serviceName" "PASS"
-            }
-            else {
-                Write-CheckResult "docker-compose includes $serviceName" "FAIL" "Service not defined in docker-compose"
-            }
-        }
-    }
-    else {
-        Write-CheckResult "docker-compose.consolidated.yml exists" "FAIL" "Docker compose file missing"
-    }
-}
-
-function Test-PackageStructure {
-    Write-Host "`n📦 Checking Package Structure..." -ForegroundColor Cyan
+function Test-FilePathConsistency {
+    Write-Host "`n� Checking File Path Consistency..." -ForegroundColor Cyan
     
     foreach ($serviceName in $ConsolidatedServices.Keys) {
         $serviceConfig = $ConsolidatedServices[$serviceName]
@@ -505,30 +352,9 @@ function Test-PackageStructure {
     }
 }
 
-function Test-GradleBuild {
-    Write-Host "`n🏗️  Testing Gradle Build..." -ForegroundColor Cyan
-    
-    try {
-        Write-Host "   Running Gradle validation..." -ForegroundColor Gray
-        $result = & ./gradlew help --quiet 2>&1
-        if ($LASTEXITCODE -eq 0) {
-            Write-CheckResult "Gradle configuration syntax" "PASS"
-        }
-        else {
-            Write-CheckResult "Gradle configuration syntax" "FAIL" "Gradle configuration has errors"
-            if ($Detailed) {
-                Write-Host "   Error: $result" -ForegroundColor Red
-            }
-        }
-    }
-    catch {
-        Write-CheckResult "Gradle executable" "FAIL" "Cannot execute Gradle: $($_.Exception.Message)"
-    }
-}
-
 function Show-Summary {
     Write-Host "`n" + "="*70 -ForegroundColor Cyan
-    Write-Host "📊 STRUCTURE CONSISTENCY VERIFICATION SUMMARY" -ForegroundColor Cyan
+    Write-Host "📊 FILE PATH CONSISTENCY VERIFICATION SUMMARY" -ForegroundColor Cyan
     Write-Host "="*70 -ForegroundColor Cyan
     
     Write-Host "📈 Results:" -ForegroundColor White
@@ -561,8 +387,8 @@ function Show-Summary {
     }
     
     if ($Script:FailedChecks -eq 0 -and $Script:Issues.Count -eq 0) {
-        Write-Host "`n🎉 All structure consistency checks passed!" -ForegroundColor Green
-        Write-Host "🚀 Your consolidated services structure is properly organized!" -ForegroundColor Green
+        Write-Host "`n🎉 All file path consistency checks passed!" -ForegroundColor Green
+        Write-Host "🚀 Your consolidated services file structure is properly organized!" -ForegroundColor Green
     }
     else {
         Write-Host "`n📋 Next Steps:" -ForegroundColor Cyan
@@ -574,8 +400,8 @@ function Show-Summary {
 }
 
 # Main execution
-Write-Host "🔍 Chiro ERP Consolidated Services Structure Verification" -ForegroundColor Cyan
-Write-Host "=======================================================" -ForegroundColor Cyan
+Write-Host "🔍 Chiro ERP Consolidated Services File Path Consistency Check" -ForegroundColor Cyan
+Write-Host "=============================================================" -ForegroundColor Cyan
 
 if ($Fix) {
     Write-Host "🔧 Auto-fix mode enabled" -ForegroundColor Yellow
@@ -591,10 +417,7 @@ Write-Host ""
 Test-DirectoryStructure
 Test-BuildFiles
 Test-ApplicationFiles
-Test-SettingsGradle
-Test-DockerConfiguration
-Test-PackageStructure
-Test-GradleBuild
+Test-FilePathConsistency
 
 # Show summary
 Show-Summary

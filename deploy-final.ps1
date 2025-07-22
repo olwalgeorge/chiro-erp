@@ -13,6 +13,74 @@ param(
 $ErrorActionPreference = "Stop"
 $InformationPreference = "Continue"
 
+function Invoke-PreDeploymentChecks {
+    Write-Host "`n🔧 RUNNING PRE-DEPLOYMENT SCRIPTS" -ForegroundColor Magenta
+    Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" -ForegroundColor DarkGray
+    
+    # 1. Verify Service Structure Consistency
+    Write-Host "📁 Step 1: Verifying service structure consistency..." -ForegroundColor Cyan
+    if (Test-Path ".\verify-service-structure-consistency.ps1") {
+        try {
+            & ".\verify-service-structure-consistency.ps1" -Fix
+            if ($LASTEXITCODE -eq 0) {
+                Write-Host "   ✅ Service structure verification completed" -ForegroundColor Green
+            }
+            else {
+                Write-Host "   ⚠️  Service structure verification found issues (exit code: $LASTEXITCODE)" -ForegroundColor Yellow
+            }
+        }
+        catch {
+            Write-Host "   ❌ Failed to run service structure verification: $($_.Exception.Message)" -ForegroundColor Red
+        }
+    }
+    else {
+        Write-Host "   ⚠️  Service structure verification script not found" -ForegroundColor Yellow
+    }
+    
+    # 2. Fix Dependencies
+    Write-Host "`n📦 Step 2: Fixing dependencies..." -ForegroundColor Cyan
+    if (Test-Path ".\fix-dependencies.ps1") {
+        try {
+            & ".\fix-dependencies.ps1"
+            if ($LASTEXITCODE -eq 0) {
+                Write-Host "   ✅ Dependencies fixed successfully" -ForegroundColor Green
+            }
+            else {
+                Write-Host "   ⚠️  Dependency fixing completed with warnings (exit code: $LASTEXITCODE)" -ForegroundColor Yellow
+            }
+        }
+        catch {
+            Write-Host "   ❌ Failed to fix dependencies: $($_.Exception.Message)" -ForegroundColor Red
+        }
+    }
+    else {
+        Write-Host "   ⚠️  Fix dependencies script not found" -ForegroundColor Yellow
+    }
+    
+    # 3. Standardize Kubernetes Manifests
+    Write-Host "`n☸️  Step 3: Standardizing Kubernetes manifests..." -ForegroundColor Cyan
+    if (Test-Path ".\standardize-k8s-manifests.ps1") {
+        try {
+            & ".\standardize-k8s-manifests.ps1" -Fix
+            if ($LASTEXITCODE -eq 0) {
+                Write-Host "   ✅ Kubernetes manifests standardized successfully" -ForegroundColor Green
+            }
+            else {
+                Write-Host "   ⚠️  Kubernetes manifest standardization completed with warnings (exit code: $LASTEXITCODE)" -ForegroundColor Yellow
+            }
+        }
+        catch {
+            Write-Host "   ❌ Failed to standardize Kubernetes manifests: $($_.Exception.Message)" -ForegroundColor Red
+        }
+    }
+    else {
+        Write-Host "   ⚠️  Kubernetes manifest standardization script not found" -ForegroundColor Yellow
+    }
+    
+    Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" -ForegroundColor DarkGray
+    Write-Host "✅ PRE-DEPLOYMENT SCRIPTS COMPLETED" -ForegroundColor Green
+}
+
 # Global error handler
 function Write-CriticalError {
     param(
@@ -60,59 +128,54 @@ function Test-Prerequisites {
     $issues = @()
     $warnings = @()
     
-    # Run comprehensive validation if available
-    if (Test-Path ".\run-comprehensive-validation.ps1") {
-        Write-Host "📋 Running comprehensive project validation..." -ForegroundColor Cyan
-        try {
-            # Run validation and capture only the exit code
-            & ".\run-comprehensive-validation.ps1" -SkipFixes -Force 2>&1 | Out-Null
-            $validationExitCode = $LASTEXITCODE
-            
-            if ($validationExitCode -eq 0) {
-                Write-Host "   ✅ Project validation passed" -ForegroundColor Green
-            }
-            else {
-                $warnings += "Project validation found issues - deployment may fail"
-                Write-Host "   ⚠️  Project validation found issues" -ForegroundColor Yellow
-                Write-Host "   💡 Run: .\run-comprehensive-validation.ps1 -Force (to auto-fix)" -ForegroundColor Gray
-            }
-        }
-        catch {
-            $warnings += "Could not run project validation: $($_.Exception.Message)"
-        }
-    }
-    else {
-        $warnings += "Comprehensive validation script not found - skipping advanced checks"
-    }
+    # Run pre-deployment scripts in order
+    Invoke-PreDeploymentChecks
     
     # 1. Check Docker availability and version
     Write-Host "📦 Checking Docker..." -ForegroundColor Cyan
     try {
         $dockerVersion = docker --version 2>$null
-        if ($dockerVersion) {
+        if ($dockerVersion -and $LASTEXITCODE -eq 0) {
             Write-Host "  ✅ Docker found: $dockerVersion" -ForegroundColor Green
         }
         else {
-            $issues += "Docker is not installed or not accessible"
+            $issues += "Docker is not installed or not accessible in PATH"
+            Write-Host "  ❌ Docker command not found" -ForegroundColor Red
         }
     }
     catch {
         $issues += "Failed to check Docker version: $_"
+        Write-Host "  ❌ Error checking Docker: $_" -ForegroundColor Red
     }
     
     # 2. Check Docker daemon status
     Write-Host "🐳 Checking Docker daemon..." -ForegroundColor Cyan
     try {
-        docker info 2>$null | Out-Null
+        $dockerInfoOutput = docker info 2>&1
         if ($LASTEXITCODE -eq 0) {
             Write-Host "  ✅ Docker daemon is running" -ForegroundColor Green
         }
         else {
-            $issues += "Docker daemon is not running. Please start Docker Desktop."
+            # Check specific error messages to provide better guidance
+            if ($dockerInfoOutput -match "pipe.*dockerDesktopLinuxEngine.*cannot find.*file") {
+                $issues += "Docker Desktop is not running. Please start Docker Desktop and wait for it to fully initialize."
+                Write-Host "  ❌ Docker Desktop is not running" -ForegroundColor Red
+                Write-Host "     💡 Start Docker Desktop and wait for the status to show 'Engine running'" -ForegroundColor Yellow
+            }
+            elseif ($dockerInfoOutput -match "docker daemon.*not running") {
+                $issues += "Docker daemon is not running. Please start Docker service."
+                Write-Host "  ❌ Docker daemon is not running" -ForegroundColor Red
+            }
+            else {
+                $issues += "Cannot connect to Docker daemon. Error: $dockerInfoOutput"
+                Write-Host "  ❌ Cannot connect to Docker daemon" -ForegroundColor Red
+                Write-Host "     Details: $dockerInfoOutput" -ForegroundColor Gray
+            }
         }
     }
     catch {
-        $issues += "Cannot connect to Docker daemon"
+        $issues += "Cannot connect to Docker daemon: $_"
+        Write-Host "  ❌ Docker daemon connection failed: $_" -ForegroundColor Red
     }
     
     # 3. Check available disk space
@@ -294,27 +357,85 @@ function Test-LocalBuilds {
 function Show-Status {
     Write-Host "`n📊 CHIRO ERP SYSTEM STATUS" -ForegroundColor Yellow
     
-    Write-Host "`nInfrastructure Services:" -ForegroundColor Cyan
-    docker ps --format "table {{.Names}}\t{{.Image}}\t{{.Status}}\t{{.Ports}}" | Where-Object { $_ -match "chiro-erp-(postgres|kafka|zookeeper)" }
-    
-    Write-Host "`nApplication Services:" -ForegroundColor Cyan  
-    docker ps --format "table {{.Names}}\t{{.Image}}\t{{.Status}}\t{{.Ports}}" | Where-Object { $_ -match "chiro-erp-.*-service" }
-    
-    Write-Host "`nBuilt Images:" -ForegroundColor Cyan
-    docker images --format "table {{.Repository}}\t{{.Tag}}\t{{.Size}}" | Where-Object { $_ -match "chiro-erp" }
-    
-    Write-Host "`nHealth Check URLs:" -ForegroundColor Cyan
-    $runningApps = docker ps --filter "name=chiro-erp" --format "{{.Names}} {{.Ports}}"
-    if ($runningApps) {
-        foreach ($app in $runningApps) {
-            if ($app -match '(\d+)->8080') {
-                $port = $matches[1]
-                Write-Host "  http://localhost:$port/q/health" -ForegroundColor Green
-            }
+    # Check if Docker is available first
+    try {
+        docker info 2>$null | Out-Null
+        if ($LASTEXITCODE -ne 0) {
+            Write-Host "`n❌ Docker is not running - cannot show container status" -ForegroundColor Red
+            Write-Host "💡 Please start Docker Desktop and try again" -ForegroundColor Yellow
+            return
         }
     }
-    else {
-        Write-Host "  No application services running" -ForegroundColor Yellow
+    catch {
+        Write-Host "`n❌ Docker is not available - cannot show container status" -ForegroundColor Red
+        Write-Host "💡 Please install Docker Desktop and try again" -ForegroundColor Yellow
+        return
+    }
+    
+    Write-Host "`nInfrastructure Services:" -ForegroundColor Cyan
+    try {
+        $infraServices = docker ps --format "table {{.Names}}\t{{.Image}}\t{{.Status}}\t{{.Ports}}" | Where-Object { $_ -match "chiro-erp-(postgres|kafka|zookeeper)" }
+        if ($infraServices) {
+            $infraServices | ForEach-Object { Write-Host "  $_" -ForegroundColor White }
+        }
+        else {
+            Write-Host "  No infrastructure services running" -ForegroundColor Gray
+        }
+    }
+    catch {
+        Write-Host "  Error retrieving infrastructure services: $_" -ForegroundColor Red
+    }
+    
+    Write-Host "`nApplication Services:" -ForegroundColor Cyan
+    try {
+        $appServices = docker ps --format "table {{.Names}}\t{{.Image}}\t{{.Status}}\t{{.Ports}}" | Where-Object { $_ -match "chiro-erp-.*-service" }
+        if ($appServices) {
+            $appServices | ForEach-Object { Write-Host "  $_" -ForegroundColor White }
+        }
+        else {
+            Write-Host "  No application services running" -ForegroundColor Gray
+        }
+    }
+    catch {
+        Write-Host "  Error retrieving application services: $_" -ForegroundColor Red
+    }
+    
+    Write-Host "`nBuilt Images:" -ForegroundColor Cyan
+    try {
+        $builtImages = docker images --format "table {{.Repository}}\t{{.Tag}}\t{{.Size}}" | Where-Object { $_ -match "chiro-erp" }
+        if ($builtImages) {
+            $builtImages | ForEach-Object { Write-Host "  $_" -ForegroundColor White }
+        }
+        else {
+            Write-Host "  No CHIRO ERP images found" -ForegroundColor Gray
+        }
+    }
+    catch {
+        Write-Host "  Error retrieving Docker images: $_" -ForegroundColor Red
+    }
+    
+    Write-Host "`nHealth Check URLs:" -ForegroundColor Cyan
+    try {
+        $runningApps = docker ps --filter "name=chiro-erp" --format "{{.Names}} {{.Ports}}" 2>$null
+        if ($runningApps -and $LASTEXITCODE -eq 0) {
+            $healthUrlsFound = $false
+            foreach ($app in $runningApps) {
+                if ($app -match '(\d+)->8080') {
+                    $port = $matches[1]
+                    Write-Host "  http://localhost:$port/q/health" -ForegroundColor Green
+                    $healthUrlsFound = $true
+                }
+            }
+            if (-not $healthUrlsFound) {
+                Write-Host "  No application services with exposed ports running" -ForegroundColor Gray
+            }
+        }
+        else {
+            Write-Host "  No application services running" -ForegroundColor Gray
+        }
+    }
+    catch {
+        Write-Host "  Error retrieving health check URLs: $_" -ForegroundColor Red
     }
 }
 
@@ -459,6 +580,12 @@ try {
             Test-Prerequisites
         }
         
+        "predeploy" {
+            Write-Host "🔧 Running pre-deployment scripts only..." -ForegroundColor Cyan
+            Invoke-PreDeploymentChecks
+            Write-Host "✅ Pre-deployment scripts completed" -ForegroundColor Green
+        }
+        
         "build" {
             Test-LocalBuilds
         }
@@ -524,10 +651,11 @@ try {
         }
     
         default {
-            Write-Host "Usage: .\deploy-final.ps1 -Action [status|checks|build|infrastructure|applications|full|cleanup] [-SkipChecks]" -ForegroundColor Yellow
+            Write-Host "Usage: .\deploy-final.ps1 -Action [status|checks|predeploy|build|infrastructure|applications|full|cleanup] [-SkipChecks]" -ForegroundColor Yellow
             Write-Host "`nActions:" -ForegroundColor Cyan
             Write-Host "  status         - Show current system status" -ForegroundColor White
             Write-Host "  checks         - Run only pre-deployment consistency checks" -ForegroundColor White
+            Write-Host "  predeploy      - Run pre-deployment scripts (verify structure, fix dependencies, standardize manifests)" -ForegroundColor White
             Write-Host "  build          - Run only local build validation" -ForegroundColor White
             Write-Host "  infrastructure - Deploy only database and messaging services" -ForegroundColor White
             Write-Host "  applications   - Build and deploy application services" -ForegroundColor White
@@ -539,7 +667,7 @@ try {
     }
 
     # Success message for completed deployments
-    if (@("infrastructure", "applications", "full", "cleanup", "build") -contains $Action.ToLower()) {
+    if (@("infrastructure", "applications", "full", "cleanup", "build", "predeploy") -contains $Action.ToLower()) {
         Write-Host "`n✅ DEPLOYMENT COMPLETED SUCCESSFULLY" -ForegroundColor Green
     }
 
