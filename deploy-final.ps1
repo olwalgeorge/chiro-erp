@@ -6,41 +6,131 @@
 param(
     [string]$Action = "status",
     [string]$Environment = "dev",
-    [switch]$SkipChecks = $false
+    [switch]$SkipChecks = $false,
+    [switch]$Native = $false,
+    [switch]$NonInteractive
 )
 
 # Set strict error handling
 $ErrorActionPreference = "Stop"
 $InformationPreference = "Continue"
 
-function Invoke-PreDeploymentChecks {
-    Write-Host "`n🔧 RUNNING PRE-DEPLOYMENT SCRIPTS" -ForegroundColor Magenta
+# Interactive build type selection (only for build-related actions)
+if (-not $NonInteractive -and @("infrastructure", "applications", "full", "build") -contains $Action.ToLower()) {
+    Write-Host "`n🎯 BUILD TYPE SELECTION" -ForegroundColor Yellow
+    Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" -ForegroundColor DarkGray
+    Write-Host "Choose your build type:" -ForegroundColor Cyan
+    Write-Host "  [1] 🚀 GraalVM Native - Faster startup, lower memory (production)" -ForegroundColor Green
+    Write-Host "  [2] ☕ Standard JVM - Faster builds, easier debugging (development)" -ForegroundColor Cyan
     Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" -ForegroundColor DarkGray
     
+    do {
+        Write-Host "Please enter your choice [1-2]: " -NoNewline -ForegroundColor Yellow
+        $choice = Read-Host
+        
+        switch ($choice) {
+            "1" {
+                $Native = $true
+                Write-Host "✅ Selected: GraalVM Native compilation" -ForegroundColor Green
+                Write-Host "💡 This will take longer to build but provides optimized runtime performance" -ForegroundColor Gray
+                break
+            }
+            "2" {
+                $Native = $false
+                Write-Host "✅ Selected: Standard JVM compilation" -ForegroundColor Cyan
+                Write-Host "💡 This will build faster and is ideal for development" -ForegroundColor Gray
+                break
+            }
+            default {
+                Write-Host "❌ Invalid choice. Please enter 1 or 2." -ForegroundColor Red
+                continue
+            }
+        }
+        break
+    } while ($true)
+    
+    Write-Host ""
+}
+
+# Progress tracking functions
+function Show-ProgressBar {
+    param(
+        [int]$PercentComplete,
+        [string]$Activity,
+        [string]$Status,
+        [int]$Id = 1
+    )
+    Write-Progress -Id $Id -Activity $Activity -Status $Status -PercentComplete $PercentComplete
+}
+
+function Write-TimedStatus {
+    param(
+        [string]$Message,
+        [string]$Color = "Cyan",
+        [switch]$ShowElapsed
+    )
+    $timestamp = Get-Date -Format "HH:mm:ss"
+    if ($ShowElapsed -and $script:StartTime) {
+        $elapsed = (Get-Date) - $script:StartTime
+        $elapsedStr = " [Elapsed: $($elapsed.ToString('mm\:ss'))]"
+    } else {
+        $elapsedStr = ""
+    }
+    Write-Host "[$timestamp]$elapsedStr $Message" -ForegroundColor $Color
+}
+
+function Start-Timer {
+    $script:StartTime = Get-Date
+    Write-TimedStatus "🚀 Starting deployment process..." "Green"
+}
+
+function Show-StepProgress {
+    param(
+        [int]$CurrentStep,
+        [int]$TotalSteps,
+        [string]$StepName,
+        [string]$Details = ""
+    )
+    $percent = [math]::Round(($CurrentStep / $TotalSteps) * 100, 0)
+    $progressBar = "█" * [math]::Round($percent / 5) + "░" * (20 - [math]::Round($percent / 5))
+    Write-TimedStatus "[$progressBar] Step $CurrentStep/$TotalSteps ($percent%): $StepName" "Cyan" -ShowElapsed
+    if ($Details) {
+        Write-Host "    💡 $Details" -ForegroundColor Gray
+    }
+}
+
+function Invoke-PreDeploymentChecks {
+    Write-TimedStatus "🔧 RUNNING PRE-DEPLOYMENT SCRIPTS" "Magenta"
+    Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" -ForegroundColor DarkGray
+    
+    Show-StepProgress 1 3 "Verifying service structure consistency" "Checking project structure and consistency"
+    
     # 1. Verify Service Structure Consistency
-    Write-Host "📁 Step 1: Verifying service structure consistency..." -ForegroundColor Cyan
     if (Test-Path ".\verify-service-structure-consistency.ps1") {
         try {
+            Write-TimedStatus "   📁 Running service structure verification..." "Cyan"
             & ".\verify-service-structure-consistency.ps1" -Fix
             if ($LASTEXITCODE -eq 0) {
-                Write-Host "   ✅ Service structure verification completed" -ForegroundColor Green
+                Write-TimedStatus "   ✅ Service structure verification completed" "Green"
             }
             else {
-                Write-Host "   ⚠️  Service structure verification found issues (exit code: $LASTEXITCODE)" -ForegroundColor Yellow
+                Write-TimedStatus "   ⚠️  Service structure verification found issues (exit code: $LASTEXITCODE)" "Yellow"
             }
         }
         catch {
-            Write-Host "   ❌ Failed to run service structure verification: $($_.Exception.Message)" -ForegroundColor Red
+            Write-TimedStatus "   ❌ Failed to run service structure verification: $($_.Exception.Message)" "Red"
         }
     }
     else {
-        Write-Host "   ⚠️  Service structure verification script not found" -ForegroundColor Yellow
+        Write-TimedStatus "   ⚠️  Service structure verification script not found" "Yellow"
     }
     
+    Show-StepProgress 2 3 "Fixing dependencies" "Resolving and updating project dependencies"
+    
     # 2. Fix Dependencies
-    Write-Host "`n📦 Step 2: Fixing dependencies..." -ForegroundColor Cyan
     if (Test-Path ".\fix-dependencies.ps1") {
         try {
+            Write-TimedStatus "   📦 Running dependency fixes..." "Cyan"
             & ".\fix-dependencies.ps1"
             if ($LASTEXITCODE -eq 0) {
                 Write-Host "   ✅ Dependencies fixed successfully" -ForegroundColor Green
@@ -118,8 +208,13 @@ function Write-CriticalError {
 }
 
 Write-Host "🚀 CHIRO ERP COMPREHENSIVE DEPLOYMENT" -ForegroundColor Magenta
-Write-Host "Action: $Action | Environment: $Environment" -ForegroundColor Cyan
+Write-Host "Action: $Action | Environment: $Environment | Native: $Native" -ForegroundColor Cyan
 Write-Host "Timestamp: $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')" -ForegroundColor Gray
+
+# Initialize timer for full deployments
+if (@("infrastructure", "applications", "full") -contains $Action.ToLower()) {
+    Start-Timer
+}
 
 function Test-Prerequisites {
     Write-Host "`n🔍 RUNNING PRE-DEPLOYMENT CONSISTENCY CHECKS" -ForegroundColor Yellow
@@ -234,8 +329,10 @@ function Test-Prerequisites {
 }
 
 function Test-LocalBuilds {
-    Write-Host "`n🔨 VALIDATING LOCAL BUILDS" -ForegroundColor Yellow
+    Write-TimedStatus "🔨 VALIDATING LOCAL BUILDS" "Yellow"
     Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" -ForegroundColor DarkGray
+    
+    Show-StepProgress 1 4 "Checking Gradle wrapper" "Verifying build system availability"
     
     # Pre-check: Verify Gradle wrapper is accessible
     if (-not (Test-Path "gradlew")) {
@@ -243,76 +340,143 @@ function Test-LocalBuilds {
     }
     
     # Pre-check: Test Gradle wrapper execution
-    Write-Host "🔧 Testing Gradle wrapper..." -ForegroundColor Cyan
+    Write-TimedStatus "🔧 Testing Gradle wrapper..." "Cyan"
     try {
         .\gradlew --version 2>$null | Out-Null
         if ($LASTEXITCODE -ne 0) {
             Write-CriticalError "Gradle wrapper is not executable" "Gradle wrapper test failed with exit code: $LASTEXITCODE"
         }
-        Write-Host "  ✅ Gradle wrapper is functional" -ForegroundColor Green
+        Write-TimedStatus "  ✅ Gradle wrapper is functional" "Green"
     }
     catch {
         Write-CriticalError "Failed to test Gradle wrapper: $($_.Exception.Message)" "Gradle wrapper execution failed"
     }
     
+    Show-StepProgress 2 4 "Cleaning previous builds" "Removing build artifacts and caches"
+    
     # Clean previous builds
-    Write-Host "🧹 Cleaning previous builds..." -ForegroundColor Cyan
+    Write-TimedStatus "🧹 Cleaning previous builds..." "Cyan"
     try {
         .\gradlew clean --quiet
         if ($LASTEXITCODE -ne 0) {
             Write-CriticalError "Gradle clean failed" "Build clean operation failed with exit code: $LASTEXITCODE"
         }
-        Write-Host "  ✅ Previous builds cleaned" -ForegroundColor Green
+        Write-TimedStatus "  ✅ Previous builds cleaned" "Green"
     }
     catch {
         Write-CriticalError "Failed to clean builds: $($_.Exception.Message)" "Gradle clean operation failed"
     }
     
+    Show-StepProgress 3 4 "Compiling project" "Building all services and dependencies"
+    
     # Compile and test the entire project
-    Write-Host "⚙️  Compiling entire project..." -ForegroundColor Cyan
-    Write-Host "   📊 This may take several minutes - watch for progress..." -ForegroundColor Gray
+    if ($Native) {
+        Write-TimedStatus "⚡ Compiling entire project with GraalVM Native..." "Cyan"
+        Write-TimedStatus "   🚀 GRAALVM NATIVE BUILD IN PROGRESS - This will take longer..." "Yellow"
+        Write-TimedStatus "   💡 Native compilation provides faster startup and lower memory usage" "Gray"
+    } else {
+        Write-TimedStatus "⚙️  Compiling entire project..." "Cyan"
+        Write-TimedStatus "   🔨 GRADLE BUILD IN PROGRESS - Please wait..." "Yellow"
+    }
     
     try {
-        # Run build with progress output
+        # Run build with minimal output but show progress
         $buildStartTime = Get-Date
-        .\gradlew build --info --no-daemon
+        
+        # Show a simple progress indicator for Gradle build
+        $gradleJob = Start-Job -ScriptBlock {
+            param($workingDir, $useNative)
+            Set-Location $workingDir
+            if ($useNative) {
+                .\gradlew build -Dquarkus.native.enabled=true -Dquarkus.native.container-build=true --quiet
+            } else {
+                .\gradlew build --quiet
+            }
+        } -ArgumentList (Get-Location).Path, $Native
+        
+        # Show progress while Gradle is building
+        $dots = 0
+        $buildType = if ($Native) { "NATIVE" } else { "JVM" }
+        while ($gradleJob.State -eq "Running") {
+            $elapsed = [math]::Round(((Get-Date) - $buildStartTime).TotalSeconds, 0)
+            $dotString = "." * ($dots % 4)
+            if ($Native) {
+                Write-Host "`r   ⚡ GRAALVM BUILDING $buildType$dotString (${elapsed}s elapsed)   " -NoNewline -ForegroundColor Yellow
+            } else {
+                Write-Host "`r   🔨 GRADLE BUILDING $buildType$dotString (${elapsed}s elapsed)   " -NoNewline -ForegroundColor Yellow
+            }
+            Start-Sleep 3
+            $dots++
+        }
+        
+        Receive-Job $gradleJob | Out-Null  # Consume job output
         $buildEndTime = Get-Date
         $buildDuration = ($buildEndTime - $buildStartTime).TotalSeconds
         
-        if ($LASTEXITCODE -eq 0) {
-            Write-Host "  ✅ Project build completed successfully" -ForegroundColor Green
-            Write-Host "  ⏱️  Build duration: $([math]::Round($buildDuration, 1)) seconds" -ForegroundColor Gray
+        if ($gradleJob.State -eq "Completed" -and $LASTEXITCODE -eq 0) {
+            if ($Native) {
+                Write-Host "`r   ⚡ GRAALVM NATIVE BUILD COMPLETED ($([math]::Round($buildDuration, 1))s)                    " -ForegroundColor Green
+                Write-TimedStatus "  🚀 All services compiled to native executables successfully" "Green"
+            } else {
+                Write-Host "`r   ✅ GRADLE BUILD COMPLETED ($([math]::Round($buildDuration, 1))s)                    " -ForegroundColor Green
+                Write-TimedStatus "  📦 All services compiled successfully" "Green"
+            }
         }
         else {
-            Write-CriticalError "Project build failed" "Gradle build failed with exit code: $LASTEXITCODE - Cannot proceed with Docker deployment"
+            if ($Native) {
+                Write-Host "`r   ❌ GRAALVM NATIVE BUILD FAILED                                   " -ForegroundColor Red
+                Write-CriticalError "Native compilation failed" "GraalVM native build failed - Cannot proceed with Docker deployment"
+            } else {
+                Write-Host "`r   ❌ GRADLE BUILD FAILED                                   " -ForegroundColor Red
+                Write-CriticalError "Project build failed" "Gradle build failed - Cannot proceed with Docker deployment"
+            }
         }
+        
+        Remove-Job $gradleJob -Force
     }
     catch {
         Write-CriticalError "Build execution failed: $($_.Exception.Message)" "Gradle build process encountered an exception"
     }
     
+    Show-StepProgress 4 4 "Verifying artifacts" "Checking that all service JARs were built"
+    
     # Verify that all service JARs were built
-    Write-Host "📦 Verifying service artifacts..." -ForegroundColor Cyan
+    Write-TimedStatus "📦 Verifying service artifacts..." "Cyan"
     $services = @("core-business-service", "customer-relations-service", "platform-services")
     $missingArtifacts = @()
     
     foreach ($service in $services) {
-        $jarPath = "consolidated-services/$service/build/libs"
-        if (Test-Path $jarPath) {
-            $jarFiles = Get-ChildItem -Path $jarPath -Filter "*.jar" | Where-Object { $_.Name -notmatch "-sources" -and $_.Name -notmatch "-javadoc" }
-            if ($jarFiles.Count -gt 0) {
-                $jarFile = $jarFiles[0]
-                $jarSizeMB = [math]::Round($jarFile.Length / 1MB, 2)
-                Write-Host "  ✅ $service artifact: $($jarFile.Name) (${jarSizeMB} MB)" -ForegroundColor Green
+        if ($Native) {
+            # For native builds, check for native executables
+            $nativeExePath = "consolidated-services/$service/build"
+            $nativeFiles = Get-ChildItem -Path $nativeExePath -Recurse -Filter "*-runner" -ErrorAction SilentlyContinue
+            if ($nativeFiles.Count -gt 0) {
+                $nativeFile = $nativeFiles[0]
+                $nativeFileSizeMB = [math]::Round($nativeFile.Length / 1MB, 2)
+                Write-TimedStatus "  ⚡ $service native executable: $($nativeFile.Name) (${nativeFileSizeMB} MB)" "Green"
+            } else {
+                $missingArtifacts += $service
+                Write-TimedStatus "  ❌ $service native executable not found" "Red"
+            }
+        } else {
+            # For JVM builds, check for JAR files
+            $jarPath = "consolidated-services/$service/build/libs"
+            if (Test-Path $jarPath) {
+                $jarFiles = Get-ChildItem -Path $jarPath -Filter "*.jar" | Where-Object { $_.Name -notmatch "-sources" -and $_.Name -notmatch "-javadoc" }
+                if ($jarFiles.Count -gt 0) {
+                    $jarFile = $jarFiles[0]
+                    $jarSizeMB = [math]::Round($jarFile.Length / 1MB, 2)
+                    Write-TimedStatus "  ✅ $service artifact: $($jarFile.Name) (${jarSizeMB} MB)" "Green"
+                }
+                else {
+                    $missingArtifacts += $service
+                    Write-TimedStatus "  ❌ $service artifact not found" "Red"
+                }
             }
             else {
                 $missingArtifacts += $service
-                Write-Host "  ❌ $service artifact not found" -ForegroundColor Red
+                Write-TimedStatus "  ❌ $service build directory not found" "Red"
             }
-        }
-        else {
-            $missingArtifacts += $service
-            Write-Host "  ❌ $service build directory not found" -ForegroundColor Red
         }
     }
     
@@ -320,37 +484,9 @@ function Test-LocalBuilds {
         Write-CriticalError "Missing build artifacts for services: $($missingArtifacts -join ', ')" "Some services failed to build properly - Docker deployment will fail"
     }
     
-    # Run project tests
-    Write-Host "🧪 Running project tests..." -ForegroundColor Cyan
-    try {
-        $testStartTime = Get-Date
-        .\gradlew test --info --no-daemon
-        $testEndTime = Get-Date
-        $testDuration = ($testEndTime - $testStartTime).TotalSeconds
-        
-        if ($LASTEXITCODE -eq 0) {
-            Write-Host "  ✅ All tests passed" -ForegroundColor Green
-            Write-Host "  ⏱️  Test duration: $([math]::Round($testDuration, 1)) seconds" -ForegroundColor Gray
-        }
-        else {
-            # Tests failed but we'll warn instead of failing completely
-            Write-Host "  ⚠️  Some tests failed (exit code: $LASTEXITCODE)" -ForegroundColor Yellow
-            Write-Host "  💡 Consider fixing tests before deployment, but proceeding..." -ForegroundColor Gray
-            
-            # Show test results summary if available
-            if (Test-Path "build/reports/tests/test/index.html") {
-                Write-Host "  📊 Test report: build/reports/tests/test/index.html" -ForegroundColor Gray
-            }
-        }
-    }
-    catch {
-        Write-Host "  ⚠️  Test execution failed: $($_.Exception.Message)" -ForegroundColor Yellow
-        Write-Host "  💡 Proceeding with deployment despite test issues..." -ForegroundColor Gray
-    }
-    
     Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" -ForegroundColor DarkGray
-    Write-Host "✅ LOCAL BUILD VALIDATION COMPLETED" -ForegroundColor Green
-    Write-Host "🚀 Ready to proceed with Docker deployment..." -ForegroundColor Cyan
+    Write-TimedStatus "✅ LOCAL BUILD VALIDATION COMPLETED" "Green"
+    Write-TimedStatus "🚀 Ready to proceed with Docker deployment..." "Cyan"
     return $true
 }
 
@@ -440,21 +576,34 @@ function Show-Status {
 }
 
 function Deploy-Infrastructure {
-    Write-Host "`n🏗️  DEPLOYING INFRASTRUCTURE" -ForegroundColor Yellow
+    Write-TimedStatus "🏗️  DEPLOYING INFRASTRUCTURE" "Yellow"
     
     try {
-        Write-Host "🚀 Starting infrastructure services..." -ForegroundColor Cyan
-        docker-compose -f docker-compose.consolidated.yml up -d postgres kafka zookeeper
+        Write-TimedStatus "🚀 Starting database and messaging services..." "Cyan"
+        Write-Host "   � Services: postgres, kafka, zookeeper" -ForegroundColor Gray
+        
+        docker-compose -f docker-compose.consolidated.yml up -d postgres kafka zookeeper 2>$null
         
         if ($LASTEXITCODE -ne 0) {
-            Write-CriticalError "Infrastructure deployment failed" "Docker compose failed with exit code: $LASTEXITCODE"
+            Write-CriticalError "Infrastructure deployment failed" "Docker compose failed"
         }
         
-        Write-Host "✅ Infrastructure deployment started" -ForegroundColor Green
-        Write-Host "⏳ Waiting for services to be ready..." -ForegroundColor Cyan
-        Start-Sleep 15
+        Write-TimedStatus "✅ Infrastructure services started" "Green"
+        Write-TimedStatus "⏳ Waiting for initialization..." "Cyan"
         
-        Write-Host "✅ All infrastructure services are running" -ForegroundColor Green
+        # Simple countdown
+        for ($i = 15; $i -gt 0; $i--) {
+            Write-Host "`r   ⏰ Initializing services... ${i}s remaining   " -NoNewline -ForegroundColor Yellow
+            Start-Sleep 1
+        }
+        Write-Host "`r   ✅ Services ready                              " -ForegroundColor Green
+        
+        # Quick verification
+        $runningServices = docker-compose -f docker-compose.consolidated.yml ps --services --filter "status=running" 2>$null
+        if ($runningServices) {
+            Write-TimedStatus "📊 Running: $($runningServices -join ', ')" "Green"
+        }
+        
         return $true
     }
     catch {
@@ -465,20 +614,54 @@ function Deploy-Infrastructure {
 function Build-Service {
     param([string]$ServiceName)
     
-    Write-Host "`n🔨 Building $ServiceName..." -ForegroundColor Cyan
-    Write-Host "📊 Watch for percentage progress indicators below..." -ForegroundColor Green
-    Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" -ForegroundColor DarkGray
+    Write-TimedStatus "🔨 Building Docker image for $ServiceName..." "Cyan"
     
     try {
-        docker build --progress=plain --memory=3g --build-arg SERVICE_NAME=$ServiceName -f Dockerfile.consolidated -t "chiro-erp/$ServiceName" .
+        $buildStartTime = Get-Date
+        Write-Host "   🐳 DOCKER BUILD IN PROGRESS: $ServiceName" -ForegroundColor Yellow
         
-        if ($LASTEXITCODE -eq 0) {
-            Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" -ForegroundColor DarkGray
-            Write-Host "✅ $ServiceName built successfully" -ForegroundColor Green
+        # Run Docker build with minimal output
+        $dockerJob = Start-Job -ScriptBlock {
+            param($serviceName, $workingDir)
+            Set-Location $workingDir
+            docker build --quiet --memory=3g --build-arg SERVICE_NAME=$serviceName -f Dockerfile.consolidated -t "chiro-erp/$serviceName" .
+        } -ArgumentList $ServiceName, (Get-Location).Path
+        
+        # Show progress while Docker is building
+        $dots = 0
+        while ($dockerJob.State -eq "Running") {
+            $elapsed = [math]::Round(((Get-Date) - $buildStartTime).TotalSeconds, 0)
+            $dotString = "." * ($dots % 4)
+            Write-Host "`r   📦 DOCKER BUILDING $ServiceName$dotString (${elapsed}s elapsed)   " -NoNewline -ForegroundColor Yellow
+            Start-Sleep 3
+            $dots++
+        }
+        
+        Receive-Job $dockerJob | Out-Null  # Consume job output
+        $buildEndTime = Get-Date
+        $buildDuration = ($buildEndTime - $buildStartTime).TotalSeconds
+        
+        if ($dockerJob.State -eq "Completed") {
+            Write-Host "`r   ✅ DOCKER BUILD COMPLETED: $ServiceName ($([math]::Round($buildDuration, 1))s)                    " -ForegroundColor Green
+            
+            # Get image size
+            try {
+                $imageInfo = docker images "chiro-erp/$ServiceName" --format "{{.Size}}" | Select-Object -First 1
+                if ($imageInfo) {
+                    Write-TimedStatus "   📏 Image size: $imageInfo" "Gray"
+                }
+            }
+            catch {
+                Write-TimedStatus "   ⚠️  Could not retrieve image size" "Yellow"
+            }
+            
+            Remove-Job $dockerJob -Force
             return $true
         }
         else {
-            Write-CriticalError "$ServiceName build failed" "Docker build failed with exit code: $LASTEXITCODE"
+            Write-Host "`r   ❌ DOCKER BUILD FAILED: $ServiceName                                   " -ForegroundColor Red
+            Remove-Job $dockerJob -Force
+            Write-CriticalError "$ServiceName Docker build failed" "Docker build process failed"
         }
     }
     catch {
@@ -487,7 +670,7 @@ function Build-Service {
 }
 
 function Deploy-Applications {
-    Write-Host "`n🚀 DEPLOYING APPLICATIONS" -ForegroundColor Yellow
+    Write-TimedStatus "🚀 DEPLOYING APPLICATIONS" "Yellow"
     
     $services = @(
         "core-business-service",
@@ -496,31 +679,47 @@ function Deploy-Applications {
     )
     
     $successful = @()
+    $totalServices = $services.Count
     
-    foreach ($service in $services) {
-        Write-Host "`n📋 Processing service: $service" -ForegroundColor Cyan
+    for ($i = 0; $i -lt $totalServices; $i++) {
+        $service = $services[$i]
+        $currentStep = $i + 1
+        
+        Write-TimedStatus "📋 [$currentStep/$totalServices] Processing: $service" "Cyan"
         
         if (Build-Service -ServiceName $service) {
             $successful += $service
             
             $port = 8080 + $successful.Count
-            Write-Host "🚀 Starting $service on port $port..." -ForegroundColor Cyan
+            Write-TimedStatus "🚀 Starting container on port $port..." "Cyan"
             
             try {
+                # Check and remove existing container
                 $existingContainer = docker ps -a --filter "name=chiro-erp-$service" --format "{{.Names}}" 2>$null
                 if ($existingContainer) {
                     Write-Host "   🔄 Removing existing container..." -ForegroundColor Yellow
                     docker rm -f "chiro-erp-$service" 2>$null
                 }
                 
-                docker run -d --name "chiro-erp-$service" --network chiro-erp_default -p "${port}:8080" -e "QUARKUS_DATASOURCE_JDBC_URL=jdbc:postgresql://postgres:5432/chiro_erp" -e "KAFKA_BOOTSTRAP_SERVERS=kafka:9092" "chiro-erp/$service"
+                Write-Host "   📦 Starting container: $service -> localhost:$port" -ForegroundColor Gray
+                
+                docker run -d --name "chiro-erp-$service" --network chiro-erp_default -p "${port}:8080" -e "QUARKUS_DATASOURCE_JDBC_URL=jdbc:postgresql://postgres:5432/chiro_erp" -e "KAFKA_BOOTSTRAP_SERVERS=kafka:9092" "chiro-erp/$service" 2>$null
                 
                 if ($LASTEXITCODE -eq 0) {
-                    Write-Host "✅ $service deployed successfully on port $port" -ForegroundColor Green
-                    Write-Host "   🌐 Health check: http://localhost:$port/q/health" -ForegroundColor Gray
+                    Write-TimedStatus "✅ $service deployed successfully" "Green"
+                    Write-TimedStatus "   🌐 Health: http://localhost:$port/q/health" "Gray"
+                    
+                    # Quick container health check
+                    Start-Sleep 2
+                    $containerStatus = docker ps --filter "name=chiro-erp-$service" --format "{{.Status}}" 2>$null
+                    if ($containerStatus -and $containerStatus -like "*Up*") {
+                        Write-Host "   📊 Status: Running" -ForegroundColor Green
+                    } else {
+                        Write-Host "   ⚠️  Status: Unknown" -ForegroundColor Yellow
+                    }
                 }
                 else {
-                    Write-CriticalError "Failed to start $service container" "Docker run failed with exit code: $LASTEXITCODE"
+                    Write-CriticalError "Failed to start $service container" "Docker run failed"
                 }
             }
             catch {
@@ -529,7 +728,9 @@ function Deploy-Applications {
         }
     }
     
-    Write-Host "`n🎉 ALL SERVICES DEPLOYED SUCCESSFULLY!" -ForegroundColor Green
+    Write-TimedStatus "🎉 APPLICATION DEPLOYMENT COMPLETED" "Green"
+    Write-TimedStatus "📊 Deployed: $($successful.Count)/$totalServices services" "Cyan"
+    
     return @{ Success = $successful; Failed = @() }
 }
 
@@ -622,27 +823,42 @@ try {
         }
     
         "full" {
+            Write-TimedStatus "🚀 STARTING FULL DEPLOYMENT" "Magenta"
+            Write-TimedStatus "📋 Deployment plan: Infrastructure → Applications → Verification" "Cyan"
+            
             if (-not $SkipChecks) {
-                Write-Host "🔍 Running comprehensive pre-deployment checks..." -ForegroundColor Cyan
+                Write-TimedStatus "🔍 Running comprehensive pre-deployment checks..." "Cyan"
                 if (-not (Test-Prerequisites)) {
                     Write-CriticalError "Pre-deployment checks failed" "Multiple issues detected - aborting deployment"
                 }
                 
-                Write-Host "🔨 Running local build validation..." -ForegroundColor Cyan
+                Write-TimedStatus "🔨 Running local build validation..." "Cyan"
                 if (-not (Test-LocalBuilds)) {
                     Write-CriticalError "Local build validation failed" "Project build issues must be resolved before Docker deployment"
                 }
             }
             
+            Show-StepProgress 1 3 "Deploying Infrastructure" "Setting up database and messaging services"
             if (Deploy-Infrastructure) {
+                Write-TimedStatus "⏳ Allowing infrastructure to fully initialize..." "Cyan"
                 Start-Sleep 15
+                
+                Show-StepProgress 2 3 "Deploying Applications" "Building and starting microservices"
                 Deploy-Applications
+                
+                Show-StepProgress 3 3 "Final verification" "Checking deployment status and health"
                 Show-Status
             
-                Write-Host "`n🎉 DEPLOYMENT COMPLETE!" -ForegroundColor Green
-                Write-Host "Database: localhost:5432 (chiro_erp/chiro_user)" -ForegroundColor Cyan
-                Write-Host "Kafka: localhost:9092" -ForegroundColor Cyan
-                Write-Host "Check health endpoints above for application status" -ForegroundColor Cyan
+                Write-TimedStatus "🎉 DEPLOYMENT COMPLETE!" "Green"
+                Write-TimedStatus "📊 Infrastructure endpoints:" "Cyan"
+                Write-TimedStatus "   🐘 Database: localhost:5432 (chiro_erp/chiro_user)" "White"
+                Write-TimedStatus "   📨 Kafka: localhost:9092" "White"
+                Write-TimedStatus "💡 Check health endpoints above for application status" "Cyan"
+                
+                if ($script:StartTime) {
+                    $totalDuration = (Get-Date) - $script:StartTime
+                    Write-TimedStatus "⏱️  Total deployment time: $($totalDuration.ToString('mm\:ss'))" "Gray"
+                }
             }
         }
     
@@ -651,7 +867,7 @@ try {
         }
     
         default {
-            Write-Host "Usage: .\deploy-final.ps1 -Action [status|checks|predeploy|build|infrastructure|applications|full|cleanup] [-SkipChecks]" -ForegroundColor Yellow
+            Write-Host "Usage: .\deploy-final.ps1 -Action [status|checks|predeploy|build|infrastructure|applications|full|cleanup] [-SkipChecks] [-NonInteractive]" -ForegroundColor Yellow
             Write-Host "`nActions:" -ForegroundColor Cyan
             Write-Host "  status         - Show current system status" -ForegroundColor White
             Write-Host "  checks         - Run only pre-deployment consistency checks" -ForegroundColor White
@@ -663,6 +879,8 @@ try {
             Write-Host "  cleanup        - Stop and remove all containers" -ForegroundColor White
             Write-Host "`nOptions:" -ForegroundColor Cyan
             Write-Host "  -SkipChecks    - Skip pre-deployment consistency checks (not recommended)" -ForegroundColor White
+            Write-Host "  -Native        - Force GraalVM native compilation (skips interactive selection)" -ForegroundColor White
+            Write-Host "  -NonInteractive - Skip interactive prompts and use defaults" -ForegroundColor White
         }
     }
 

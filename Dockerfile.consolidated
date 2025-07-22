@@ -31,9 +31,6 @@ COPY --chown=builduser:builduser gradlew gradlew.bat ./
 COPY --chown=builduser:builduser gradle/ ./gradle/
 COPY --chown=builduser:builduser build.gradle.kts settings.gradle.kts gradle.properties ./
 
-# Copy buildSrc (required for custom plugins)
-COPY --chown=builduser:builduser buildSrc/ ./buildSrc/
-
 # Fix line endings and permissions
 RUN sed -i 's/\r$//' ./gradlew && chmod +x ./gradlew
 
@@ -107,8 +104,11 @@ RUN echo "=============================================" && \
     echo "=============================================" && \
     echo "📂 Listing build directory contents..." && \
     ls -la consolidated-services/${SERVICE_NAME}/build/ && \
+    echo "🔎 Checking for quarkus-app directory..." && \
+    ls -la consolidated-services/${SERVICE_NAME}/build/quarkus-app/ 2>/dev/null || echo "No quarkus-app found" && \
     echo "🔎 Searching for runner JAR..." && \
     find consolidated-services/${SERVICE_NAME}/build -name "*-runner.jar" -type f && \
+    find consolidated-services/${SERVICE_NAME}/build -name "*.jar" -type f && \
     echo "=============================================" && \
     echo "✅ STEP 3/4: ARTIFACTS VERIFIED (75%)" && \
     echo "⏰ Completed at: $(date)" && \
@@ -154,14 +154,16 @@ RUN echo "=============================================" && \
     echo "⏰ Started at: $(date)" && \
     echo "============================================="
 
+# Copy the uber-jar (since we build with -Dquarkus.package.type=uber-jar)
 COPY --from=builder --chown=appuser:appuser \
     /build/consolidated-services/${SERVICE_NAME}/build/*-runner.jar \
     /app/application.jar
 
-# Verify application jar exists and is readable
-RUN echo "🔍 Verifying application JAR..." && \
-    ls -la /app/application.jar && \
-    file /app/application.jar && \
+# Verify application JAR exists and is readable
+RUN echo "🔍 Verifying Quarkus application JAR..." && \
+    ls -la /app/ && \
+    echo "🔍 JAR file details:" && \
+    ls -lh /app/application.jar && \
     echo "=============================================" && \
     echo "✅ STEP 4/4: RUNTIME SETUP COMPLETED (100%)" && \
     echo "⏰ Completed at: $(date)" && \
@@ -182,7 +184,8 @@ RUN echo '#!/bin/sh' > /app/start.sh && \
     echo 'echo "Starting Chiro ERP service: ${SERVICE_NAME}"' >> /app/start.sh && \
     echo 'echo "Java version: $(java -version 2>&1 | head -n 1)"' >> /app/start.sh && \
     echo 'echo "Available memory: $(free -h | grep Mem)"' >> /app/start.sh && \
-    echo 'echo "Application jar size: $(ls -lh /app/application.jar | awk '"'"'{print $5}'"'"')"' >> /app/start.sh && \
+    echo 'echo "Application directory structure:"' >> /app/start.sh && \
+    echo 'ls -la /app/' >> /app/start.sh && \
     echo 'exec java $JAVA_OPTS -jar /app/application.jar' >> /app/start.sh && \
     chmod +x /app/start.sh && \
     chown 1001:1001 /app/start.sh
@@ -202,8 +205,7 @@ ENV JAVA_OPTS="-XX:+UseContainerSupport \
     -XX:MaxRAMPercentage=75.0 \
     -XX:+UseG1GC \
     -XX:+UseStringDeduplication \
-    -XX:+PrintGCDetails \
-    -XX:+PrintGCTimeStamps \
+    -Xlog:gc*:gc.log:time \
     -Djava.security.egd=file:/dev/./urandom \
     -Dquarkus.http.host=0.0.0.0 \
     -Dquarkus.http.port=${SERVICE_PORT} \
