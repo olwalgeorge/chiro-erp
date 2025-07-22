@@ -11,7 +11,7 @@ repositories {
 }
 
 dependencies {
-    implementation(enforcedPlatform("io.quarkus.platform:quarkus-bom:3.24.4"))
+implementation(enforcedPlatform("io.quarkus.platform:quarkus-bom:3.24.4"))
     
     // Core Quarkus dependencies
     implementation("io.quarkus:quarkus-kotlin")
@@ -19,13 +19,8 @@ dependencies {
     implementation("io.quarkus:quarkus-rest")
     implementation("io.quarkus:quarkus-rest-kotlin-serialization")
     
-    // Database
-    implementation("io.quarkus:quarkus-hibernate-reactive-panache-kotlin")
-    implementation("io.quarkus:quarkus-jdbc-postgresql")
-    
     // Configuration and observability
     implementation("io.quarkus:quarkus-config-yaml")
-    implementation("io.quarkus:quarkus-micrometer")
     implementation("io.quarkus:quarkus-smallrye-health")
     
     // Kotlin stdlib

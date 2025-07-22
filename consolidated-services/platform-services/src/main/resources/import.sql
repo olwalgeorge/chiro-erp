@@ -1,0 +1,2 @@
+-- Sample data for development
+-- This file is automatically loaded by Hibernate when using database.generation=drop-and-create

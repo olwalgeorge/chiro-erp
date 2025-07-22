@@ -11,7 +11,7 @@ repositories {
 }
 
 dependencies {
-    implementation(enforcedPlatform("io.quarkus.platform:quarkus-bom:3.24.4"))
+implementation(enforcedPlatform("io.quarkus.platform:quarkus-bom:3.24.4"))
     
     // Core Quarkus dependencies
     implementation("io.quarkus:quarkus-kotlin")
