@@ -47,3 +47,7 @@ nb-configuration.xml
 *.hprof
 *.dump
 hs_err_pid*.log
+
+# File protection backups
+.backup/
+
