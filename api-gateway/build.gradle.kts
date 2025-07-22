@@ -1,63 +1,54 @@
 plugins {
-    id("service-conventions")
+    kotlin("jvm")
+    kotlin("plugin.allopen")
+    kotlin("plugin.serialization")
+    id("io.quarkus")
 }
 
-// API Gateway specific dependencies
 dependencies {
-    // API Gateway & Routing
-    implementation("io.quarkus:quarkus-vertx-http")
-    implementation("io.quarkus:quarkus-reactive-routes")
-    
-    // Service Discovery & Load Balancing
-    
-    // Security & Authentication
+    implementation(enforcedPlatform("io.quarkus.platform:quarkus-bom:3.24.4"))
+    implementation("io.quarkus:quarkus-kotlin")
+    implementation("io.quarkus:quarkus-rest-kotlin-serialization")
+    implementation("io.quarkus:quarkus-arc")
+    implementation("io.quarkus:quarkus-rest")
+    implementation("io.quarkus:quarkus-rest-client-reactive")
+    implementation("io.quarkus:quarkus-rest-client-reactive-kotlin-serialization")
+    implementation("io.quarkus:quarkus-config-yaml")
+    implementation("io.quarkus:quarkus-micrometer")
+    implementation("io.quarkus:quarkus-smallrye-health")
+    implementation("io.quarkus:quarkus-smallrye-openapi")
+    implementation("io.quarkus:quarkus-smallrye-fault-tolerance")
     implementation("io.quarkus:quarkus-security")
     implementation("io.quarkus:quarkus-oidc")
-    implementation("io.quarkus:quarkus-smallrye-jwt")
-    
-    // Circuit Breaker & Fault Tolerance
-    implementation("io.quarkus:quarkus-smallrye-fault-tolerance")
-    
-    // Rate Limiting & Throttling  
-    implementation("io.quarkus:quarkus-rate-limiter")
-    
-    // API Documentation aggregation
-    implementation("io.quarkus:quarkus-smallrye-openapi")
-    
-    // Logging & Tracing for Gateway
-    implementation("io.quarkus:quarkus-logging-json")
-    implementation("io.quarkus:quarkus-opentelemetry")
+    implementation("io.quarkus:quarkus-cache")
+    implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8")
+    testImplementation("io.quarkus:quarkus-junit5")
+    testImplementation("io.rest-assured:rest-assured")
+    testImplementation("io.quarkus:quarkus-test-security")
 }
 
-// GraalVM Native Configuration
-quarkus {
-    buildForkOptions {
-        systemProperty("java.util.logging.manager", "org.jboss.logmanager.LogManager")
-        systemProperty("maven.home", System.getenv("M2_HOME"))
+group = "org.chiro"
+version = "1.0.0-SNAPSHOT"
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_21
+    targetCompatibility = JavaVersion.VERSION_21
+}
+
+allOpen {
+    annotation("jakarta.ws.rs.Path")
+    annotation("jakarta.enterprise.context.ApplicationScoped")
+    annotation("jakarta.persistence.Entity")
+    annotation("io.quarkus.test.junit.QuarkusTest")
+}
+
+tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile> {
+    compilerOptions {
+        jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_21)
+        javaParameters.set(true)
     }
 }
 
-tasks {
-    register("buildNative") {
-        group = "build"
-        description = "Build native executable"
-        
-        doLast {
-            exec {
-                commandLine("./gradlew", "build", "-Dquarkus.package.type=native")
-            }
-        }
-    }
-    
-    register("dockerBuildNative") {
-        dependsOn("buildNative")  
-        group = "docker"
-        description = "Build native Docker image"
-        
-        doLast {
-            exec {
-                commandLine("docker", "build", "-f", "docker/Dockerfile.native", "-t", "api-gateway:latest-native", ".")
-            }
-        }
-    }
+tasks.withType<Test> {
+    systemProperty("java.util.logging.manager", "org.jboss.logmanager.LogManager")
 }

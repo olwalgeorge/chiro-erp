@@ -1,34 +1,21 @@
-// Settings configuration aligned with reference project
-// https://github.com/olwalgeorge/erp/blob/main/settings.gradle.kts
-
 pluginManagement {
-    val quarkusPluginVersion: String by settings
-    val quarkusPluginId: String by settings
     repositories {
         mavenCentral()
         gradlePluginPortal()
         mavenLocal()
     }
     plugins {
-        id(quarkusPluginId) version quarkusPluginVersion
+        id("io.quarkus") version "3.24.4"
+        id("org.jetbrains.kotlin.jvm") version "2.1.21"
+        id("org.jetbrains.kotlin.plugin.allopen") version "2.1.21"
+        id("org.jetbrains.kotlin.plugin.serialization") version "2.1.21"
     }
 }
-
 rootProject.name = "chiro-erp"
 
-// Include original API Gateway (remains separate)
-include("api-gateway")
-
-// Include consolidated services
-include("consolidated-services:workforce-management-service")
+include("consolidated-services:core-business-service")
 include("consolidated-services:customer-relations-service")
 include("consolidated-services:operations-management-service")
-include("consolidated-services:core-business-service")
 include("consolidated-services:platform-services")
-
-// Configure project names for consolidated services  
-project(":consolidated-services:workforce-management-service").name = "workforce-management-service"
-project(":consolidated-services:customer-relations-service").name = "customer-relations-service"
-project(":consolidated-services:operations-management-service").name = "operations-management-service"
-project(":consolidated-services:core-business-service").name = "core-business-service"
-project(":consolidated-services:platform-services").name = "platform-services"
+include("consolidated-services:workforce-management-service")
+include("api-gateway")

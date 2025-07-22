@@ -1,14 +1,14 @@
 # =============================================================================
-# CHIRO ERP - SINGLE CONSOLIDATED DOCKERFILE
+# CHIRO ERP - OPTIMIZED CONSOLIDATED DOCKERFILE
 # =============================================================================
-# This is the ONLY Dockerfile needed for all consolidated services
+# This is the SINGLE, DEFINITIVE Dockerfile for all consolidated services
 # Optimized to handle Kotlin compilation and resource constraints
 
 ARG JAVA_VERSION=21
 ARG GRADLE_VERSION=8.5
 
 # =============================================================================
-# STEP 1/5: Build Stage - Resource-optimized build environment
+# Build Stage - Resource-optimized build environment
 # =============================================================================
 FROM gradle:${GRADLE_VERSION}-jdk${JAVA_VERSION}-alpine AS builder
 
@@ -40,33 +40,15 @@ RUN sed -i 's/\r$//' ./gradlew && chmod +x ./gradlew
 # Switch to build user
 USER builduser
 
-# Pre-download dependencies with detailed progress logging
-RUN echo "=============================================" && \
-    echo "📦 STEP 1/4: DOWNLOADING GRADLE DEPENDENCIES (0%)" && \
-    echo "⏰ Started at: $(date)" && \
-    echo "📊 Memory: $(free -h | grep Mem | awk '{print $3 \"/\" $2}')" && \
-    echo "💾 Disk: $(df -h /build | tail -1 | awk '{print $4 \" available\"}')" && \
-    echo "⏳ This phase typically takes 5-10 minutes..." && \
-    echo "=============================================" && \
-    echo "📋 Resolving and downloading dependencies..." && \
-    ./gradlew dependencies \
+# Pre-download dependencies with optimal settings
+RUN ./gradlew dependencies \
     --no-daemon \
     --no-parallel \
     --max-workers=1 \
     -Dorg.gradle.jvmargs="-Xmx1g -XX:MaxMetaspaceSize=256m" \
-    --info \
-    && echo "" && \
-    echo "=============================================" && \
-    echo "✅ STEP 1/4: DEPENDENCIES DOWNLOADED (25%)" && \
-    echo "⏰ Completed at: $(date)" && \
-    echo "=============================================" \
-    || echo "⚠️  Dependency download completed with warnings (normal) at: $(date)"
+    --quiet || true
 
 # Copy only the specific service we're building (reduces context size)
-RUN echo "=============================================" && \
-    echo "📂 COPYING SERVICE SOURCE CODE" && \
-    echo "Service: $SERVICE_NAME" && \
-    echo "============================================="
 COPY --chown=builduser:builduser consolidated-services/${SERVICE_NAME}/ ./consolidated-services/${SERVICE_NAME}/
 
 # Validate SERVICE_NAME argument
@@ -76,15 +58,8 @@ RUN if [ -z "$SERVICE_NAME" ]; then \
     exit 1; \
     fi
 
-# Build specific service with detailed progress tracking
-RUN echo "=============================================" && \
-    echo "🏗️  STEP 2/4: BUILDING SERVICE: $SERVICE_NAME (25%)" && \
-    echo "⏰ Started at: $(date)" && \
-    echo "📊 Memory: $(free -h | grep Mem | awk '{print $3 \"/\" $2}')" && \
-    echo "⏳ This phase typically takes 5-15 minutes..." && \
-    echo "📋 You'll see Kotlin compilation progress below..." && \
-    echo "=============================================" && \
-    echo "� [30%] Starting Gradle build with detailed logging..." && \
+# Build specific service with resource-optimized settings
+RUN echo "Building service: $SERVICE_NAME" && \
     ./gradlew :consolidated-services:${SERVICE_NAME}:build \
     -Dquarkus.package.type=uber-jar \
     --no-daemon \
@@ -93,26 +68,11 @@ RUN echo "=============================================" && \
     -Dorg.gradle.jvmargs="-Xmx2g -XX:MaxMetaspaceSize=512m -XX:+UseG1GC" \
     -Dkotlin.compiler.execution.strategy=in-process \
     -Dkotlin.daemon.jvm.options="-Xmx1g" \
-    --info \
-    --stacktrace && \
-    echo "=============================================" && \
-    echo "✅ STEP 2/4: BUILD COMPLETED (50%)" && \
-    echo "⏰ Completed at: $(date)" && \
-    echo "============================================="
+    --info
 
 # Verify the build artifact exists
-RUN echo "=============================================" && \
-    echo "🔍 STEP 3/4: VERIFYING BUILD ARTIFACTS (50%)" && \
-    echo "⏰ Started at: $(date)" && \
-    echo "=============================================" && \
-    echo "📂 Listing build directory contents..." && \
-    ls -la consolidated-services/${SERVICE_NAME}/build/ && \
-    echo "🔎 Searching for runner JAR..." && \
-    find consolidated-services/${SERVICE_NAME}/build -name "*-runner.jar" -type f && \
-    echo "=============================================" && \
-    echo "✅ STEP 3/4: ARTIFACTS VERIFIED (75%)" && \
-    echo "⏰ Completed at: $(date)" && \
-    echo "============================================="
+RUN ls -la consolidated-services/${SERVICE_NAME}/build/ && \
+    find consolidated-services/${SERVICE_NAME}/build -name "*-runner.jar" -type f
 
 # =============================================================================
 # Runtime Stage - Production-optimized
@@ -149,24 +109,12 @@ RUN (addgroup -g 1001 -S appuser 2>/dev/null || true) && \
     chown -R 1001:1001 /app
 
 # Copy built application with verification
-RUN echo "=============================================" && \
-    echo "📦 STEP 4/4: SETTING UP RUNTIME (75%)" && \
-    echo "⏰ Started at: $(date)" && \
-    echo "============================================="
-
 COPY --from=builder --chown=appuser:appuser \
     /build/consolidated-services/${SERVICE_NAME}/build/*-runner.jar \
     /app/application.jar
 
 # Verify application jar exists and is readable
-RUN echo "🔍 Verifying application JAR..." && \
-    ls -la /app/application.jar && \
-    file /app/application.jar && \
-    echo "=============================================" && \
-    echo "✅ STEP 4/4: RUNTIME SETUP COMPLETED (100%)" && \
-    echo "⏰ Completed at: $(date)" && \
-    echo "🎉 Docker image build successful!" && \
-    echo "============================================="
+RUN ls -la /app/application.jar && file /app/application.jar
 
 # Create comprehensive health check script
 RUN echo '#!/bin/sh' > /app/healthcheck.sh && \

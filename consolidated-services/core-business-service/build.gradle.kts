@@ -1,76 +1,48 @@
 plugins {
-    id("consolidated-service-conventions")
+    kotlin("jvm")
+    kotlin("plugin.allopen")
+    kotlin("plugin.serialization")
+    id("io.quarkus")
 }
 
 dependencies {
-    // Core Business Service specific dependencies
-    
-    // Financial calculations and precision
-    implementation("io.quarkus:quarkus-agroal")
-    
-    // Time series data for manufacturing metrics
-    implementation("io.quarkus:quarkus-micrometer")
-    
-    // REST and Jackson dependencies are inherited from conventions
-    
-    // Database
-    implementation("io.quarkus:quarkus-hibernate-orm-panache-kotlin")
+    implementation(enforcedPlatform("io.quarkus.platform:quarkus-bom:3.24.4"))
+    implementation("io.quarkus:quarkus-kotlin")
+    implementation("io.quarkus:quarkus-rest-kotlin-serialization")
+    implementation("io.quarkus:quarkus-hibernate-reactive-panache-kotlin")
     implementation("io.quarkus:quarkus-jdbc-postgresql")
-    implementation("io.quarkus:quarkus-flyway")
-    
-    // Messaging
-    implementation("io.quarkus:quarkus-kafka-client")
-    implementation("io.quarkus:quarkus-kafka-streams")
-    
-    // Monitoring & Health
-    implementation("io.quarkus:quarkus-micrometer-registry-prometheus")
-    implementation("io.quarkus:quarkus-health")
-    implementation("io.quarkus:quarkus-info")
-    
-    // Security
-    implementation("io.quarkus:quarkus-oidc")
-    implementation("io.quarkus:quarkus-security-jpa")
-    
-    // Validation
-    implementation("io.quarkus:quarkus-hibernate-validator")
-    
-    // Testing
+    implementation("io.quarkus:quarkus-arc")
+    implementation("io.quarkus:quarkus-rest")
+    implementation("io.quarkus:quarkus-config-yaml")
+    implementation("io.quarkus:quarkus-micrometer")
+    implementation("io.quarkus:quarkus-smallrye-health")
+    implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8")
     testImplementation("io.quarkus:quarkus-junit5")
     testImplementation("io.rest-assured:rest-assured")
-    testImplementation("io.quarkus:quarkus-test-h2")
-    testImplementation("org.testcontainers:junit-jupiter")
-    testImplementation("org.testcontainers:postgresql")
 }
 
-// GraalVM Native Configuration
-quarkus {
-    buildForkOptions {
-        systemProperty("java.util.logging.manager", "org.jboss.logmanager.LogManager")
-        systemProperty("maven.home", System.getenv("M2_HOME"))
+group = "org.chiro"
+version = "1.0.0-SNAPSHOT"
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_21
+    targetCompatibility = JavaVersion.VERSION_21
+}
+
+allOpen {
+    annotation("jakarta.ws.rs.Path")
+    annotation("jakarta.enterprise.context.ApplicationScoped")
+    annotation("jakarta.persistence.Entity")
+    annotation("io.quarkus.test.junit.QuarkusTest")
+}
+
+tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile> {
+    compilerOptions {
+        jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_21)
+        javaParameters.set(true)
     }
 }
 
-tasks {
-    register("buildNative") {
-        group = "build"
-        description = "Build native executable"
-        
-        doLast {
-            exec {
-                commandLine("./gradlew", "build", "-Dquarkus.package.type=native")
-            }
-        }
-    }
-    
-    register("dockerBuildNative") {
-        dependsOn("buildNative")
-        group = "docker"
-        description = "Build native Docker image"
-        
-        doLast {
-            exec {
-                commandLine("docker", "build", "-f", "docker/Dockerfile.native", "-t", "-native", ".")
-            }
-        }
-    }
+tasks.withType<Test> {
+    systemProperty("java.util.logging.manager", "org.jboss.logmanager.LogManager")
 }
