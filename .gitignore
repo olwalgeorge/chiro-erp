@@ -42,3 +42,8 @@ nb-configuration.xml
 
 # PowerShell script backups
 *.backup.*
+
+# Java heap dumps and profiling files
+*.hprof
+*.dump
+hs_err_pid*.log
