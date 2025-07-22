@@ -12,22 +12,31 @@ repositories {
 
 dependencies {
     implementation(enforcedPlatform("io.quarkus.platform:quarkus-bom:3.24.4"))
+    
+    // Core Quarkus dependencies
     implementation("io.quarkus:quarkus-kotlin")
-    implementation("io.quarkus:quarkus-rest-kotlin-serialization")
     implementation("io.quarkus:quarkus-arc")
     implementation("io.quarkus:quarkus-rest")
-    implementation("io.quarkus:quarkus-rest-client")
-    // Removed problematic dependency
-    // Removed problematic dependency
+    implementation("io.quarkus:quarkus-rest-kotlin-serialization")
+    
+    // Configuration and observability
     implementation("io.quarkus:quarkus-config-yaml")
     implementation("io.quarkus:quarkus-micrometer")
     implementation("io.quarkus:quarkus-smallrye-health")
     implementation("io.quarkus:quarkus-smallrye-openapi")
     implementation("io.quarkus:quarkus-smallrye-fault-tolerance")
+    
+    // Security
     implementation("io.quarkus:quarkus-security")
     implementation("io.quarkus:quarkus-oidc")
+    
+    // Caching
     implementation("io.quarkus:quarkus-cache")
+    
+    // Kotlin stdlib
     implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8")
+    
+    // Test dependencies
     testImplementation("io.quarkus:quarkus-junit5")
     testImplementation("io.rest-assured:rest-assured")
     testImplementation("io.quarkus:quarkus-test-security")
@@ -58,4 +67,3 @@ tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile> {
 tasks.withType<Test> {
     systemProperty("java.util.logging.manager", "org.jboss.logmanager.LogManager")
 }
-

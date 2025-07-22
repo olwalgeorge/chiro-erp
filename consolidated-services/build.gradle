@@ -1,0 +1,2 @@
+// This is a parent module for consolidated services
+// Individual service modules will have their own build.gradle.kts files

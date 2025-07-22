@@ -1,23 +1,24 @@
 package org.chiro.gateway.application.service
 
-import io.quarkus.vertx.web.Route
-import io.quarkus.vertx.web.Router
-import io.vertx.core.http.HttpMethod
-import io.vertx.ext.web.RoutingContext
-import io.vertx.ext.web.client.WebClient
 import jakarta.enterprise.context.ApplicationScoped
-import jakarta.inject.Inject
+import jakarta.ws.rs.*
+import jakarta.ws.rs.core.Context
+import jakarta.ws.rs.core.Response
+import jakarta.ws.rs.core.UriInfo
+import jakarta.ws.rs.core.HttpHeaders
 import org.eclipse.microprofile.config.inject.ConfigProperty
+import java.net.URI
+import java.net.http.HttpClient
+import java.net.http.HttpRequest
+import java.net.http.HttpResponse
+import java.time.Duration
 import java.util.logging.Logger
-import java.util.concurrent.CompletableFuture
 
 @ApplicationScoped
+@Path("/api")
 class ConsolidatedRequestRoutingService {
     
     private val logger = Logger.getLogger(ConsolidatedRequestRoutingService::class.java.name)
-    
-    @Inject
-    lateinit var webClient: WebClient
     
     @ConfigProperty(name = "gateway.services.core-business.url")
     lateinit var coreBusinessUrl: String
@@ -33,6 +34,10 @@ class ConsolidatedRequestRoutingService {
     
     @ConfigProperty(name = "gateway.services.workforce-management.url")
     lateinit var workforceManagementUrl: String
+
+    private val httpClient = HttpClient.newBuilder()
+        .connectTimeout(Duration.ofSeconds(10))
+        .build()
     
     private val serviceMapping = mapOf(
         "/api/billing" to "core-business",
@@ -54,23 +59,90 @@ class ConsolidatedRequestRoutingService {
         "/api/tenants" to "workforce-management"
     )
     
-    @Route(path = "/api/*", methods = [HttpMethod.GET, HttpMethod.POST, HttpMethod.PUT, HttpMethod.DELETE, HttpMethod.PATCH])
-    fun routeToConsolidatedServices(context: RoutingContext) {
-        val path = context.request().path()
-        val targetService = determineTargetService(path)
+    @GET
+    @Path("/{path:.*}")
+    fun routeGetRequest(
+        @PathParam("path") path: String,
+        @Context uriInfo: UriInfo,
+        @Context headers: HttpHeaders
+    ): Response {
+        return routeRequest("GET", path, uriInfo, headers, null)
+    }
+    
+    @POST
+    @Path("/{path:.*}")
+    @Consumes("*/*")
+    fun routePostRequest(
+        @PathParam("path") path: String,
+        @Context uriInfo: UriInfo,
+        @Context headers: HttpHeaders,
+        body: String?
+    ): Response {
+        return routeRequest("POST", path, uriInfo, headers, body)
+    }
+    
+    @PUT
+    @Path("/{path:.*}")
+    @Consumes("*/*")
+    fun routePutRequest(
+        @PathParam("path") path: String,
+        @Context uriInfo: UriInfo,
+        @Context headers: HttpHeaders,
+        body: String?
+    ): Response {
+        return routeRequest("PUT", path, uriInfo, headers, body)
+    }
+    
+    @DELETE
+    @Path("/{path:.*}")
+    fun routeDeleteRequest(
+        @PathParam("path") path: String,
+        @Context uriInfo: UriInfo,
+        @Context headers: HttpHeaders
+    ): Response {
+        return routeRequest("DELETE", path, uriInfo, headers, null)
+    }
+    
+    @PATCH
+    @Path("/{path:.*}")
+    @Consumes("*/*")
+    fun routePatchRequest(
+        @PathParam("path") path: String,
+        @Context uriInfo: UriInfo,
+        @Context headers: HttpHeaders,
+        body: String?
+    ): Response {
+        return routeRequest("PATCH", path, uriInfo, headers, body)
+    }
+    
+    private fun routeRequest(
+        method: String,
+        path: String,
+        uriInfo: UriInfo,
+        headers: HttpHeaders,
+        body: String?
+    ): Response {
+        val fullPath = "/api/$path"
+        val targetService = determineTargetService(fullPath)
         
         if (targetService == null) {
-            context.response()
-                .setStatusCode(404)
-                .end("Service not found for path: $path")
-            return
+            logger.warning("No service found for path: $fullPath")
+            return Response.status(404)
+                .entity("Service not found for path: $fullPath")
+                .build()
         }
         
         val targetUrl = getServiceUrl(targetService)
-        logger.info("Routing $path to $targetService at $targetUrl")
+        logger.info("Routing $method $fullPath to $targetService at $targetUrl")
         
-        // Forward request to target service
-        forwardRequest(context, targetUrl, path)
+        return try {
+            forwardRequest(method, targetUrl, path, uriInfo, headers, body)
+        } catch (e: Exception) {
+            logger.severe("Failed to forward request: ${e.message}")
+            Response.status(502)
+                .entity("Bad Gateway: ${e.message}")
+                .build()
+        }
     }
     
     private fun determineTargetService(path: String): String? {
@@ -90,45 +162,63 @@ class ConsolidatedRequestRoutingService {
         }
     }
     
-    private fun forwardRequest(context: RoutingContext, targetUrl: String, path: String) {
-        val request = context.request()
-        val method = request.method()
-        val fullTargetUrl = "$targetUrl$path"
+    private fun forwardRequest(
+        method: String,
+        targetUrl: String,
+        path: String,
+        uriInfo: UriInfo,
+        headers: HttpHeaders,
+        body: String?
+    ): Response {
+        val fullTargetUrl = "$targetUrl/api/$path"
+        val queryString = uriInfo.requestUri.query
+        val finalUrl = if (queryString != null) "$fullTargetUrl?$queryString" else fullTargetUrl
         
-        val webRequest = webClient
-            .requestAbs(method, fullTargetUrl)
-            .putHeaders(request.headers())
+        val requestBuilder = HttpRequest.newBuilder()
+            .uri(URI.create(finalUrl))
+            .timeout(Duration.ofSeconds(30))
         
-        if (request.body() != null) {
-            webRequest.sendBuffer(request.body()) { result ->
-                if (result.succeeded()) {
-                    val response = result.result()
-                    context.response()
-                        .setStatusCode(response.statusCode())
-                        .putHeaders(response.headers())
-                        .end(response.body())
-                } else {
-                    logger.severe("Failed to forward request: ")
-                    context.response()
-                        .setStatusCode(502)
-                        .end("Bad Gateway")
-                }
-            }
-        } else {
-            webRequest.send { result ->
-                if (result.succeeded()) {
-                    val response = result.result()
-                    context.response()
-                        .setStatusCode(response.statusCode())
-                        .putHeaders(response.headers())
-                        .end(response.body())
-                } else {
-                    logger.severe("Failed to forward request: ")
-                    context.response()
-                        .setStatusCode(502)
-                        .end("Bad Gateway")
+        // Add headers (excluding hop-by-hop headers)
+        headers.requestHeaders.forEach { (name, values) ->
+            if (!isHopByHopHeader(name)) {
+                values.forEach { value ->
+                    requestBuilder.header(name, value)
                 }
             }
         }
+        
+        // Set method and body
+        when (method.uppercase()) {
+            "GET" -> requestBuilder.GET()
+            "DELETE" -> requestBuilder.DELETE()
+            "POST" -> requestBuilder.POST(HttpRequest.BodyPublishers.ofString(body ?: ""))
+            "PUT" -> requestBuilder.PUT(HttpRequest.BodyPublishers.ofString(body ?: ""))
+            "PATCH" -> requestBuilder.method("PATCH", HttpRequest.BodyPublishers.ofString(body ?: ""))
+        }
+        
+        val request = requestBuilder.build()
+        val httpResponse = httpClient.send(request, HttpResponse.BodyHandlers.ofString())
+        
+        // Build response
+        val responseBuilder = Response.status(httpResponse.statusCode())
+        
+        // Add response headers (excluding hop-by-hop headers)
+        httpResponse.headers().map().forEach { (name, values) ->
+            if (!isHopByHopHeader(name)) {
+                values.forEach { value ->
+                    responseBuilder.header(name, value)
+                }
+            }
+        }
+        
+        return responseBuilder.entity(httpResponse.body()).build()
+    }
+    
+    private fun isHopByHopHeader(headerName: String): Boolean {
+        val hopByHopHeaders = setOf(
+            "connection", "keep-alive", "proxy-authenticate", "proxy-authorization",
+            "te", "trailers", "transfer-encoding", "upgrade"
+        )
+        return hopByHopHeaders.contains(headerName.lowercase())
     }
 }
