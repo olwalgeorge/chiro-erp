@@ -13,7 +13,7 @@ repositories {
 dependencies {
     implementation(enforcedPlatform("io.quarkus.platform:quarkus-bom:3.24.4"))
     
-    // Core Quarkus dependencies
+    // Core Quarkus dependencies - Testing auto-commit functionality
     implementation("io.quarkus:quarkus-kotlin")
     implementation("io.quarkus:quarkus-arc")
     

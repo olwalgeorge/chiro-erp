@@ -27,7 +27,7 @@ spec:
       - name: customer-relations-service
         image: chiro-erp/customer-relations-service:latest
         ports:
-        - containerPort: 8083
+        - containerPort: 8082
           name: http
         env:
         - name: QUARKUS_HTTP_PORT
@@ -63,3 +63,4 @@ spec:
           periodSeconds: 5
           failureThreshold: 30
 ---
+

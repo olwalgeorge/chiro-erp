@@ -27,7 +27,7 @@ spec:
       - name: core-business-service
         image: chiro-erp/core-business-service:latest
         ports:
-        - containerPort: 8081
+        - containerPort: 8080
           name: http
         env:
         - name: QUARKUS_HTTP_PORT
@@ -63,3 +63,4 @@ spec:
           periodSeconds: 5
           failureThreshold: 30
 ---
+

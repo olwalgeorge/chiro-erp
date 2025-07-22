@@ -27,7 +27,7 @@ spec:
       - name: operations-management-service
         image: chiro-erp/operations-management-service:latest
         ports:
-        - containerPort: 8082
+        - containerPort: 8081
           name: http
         env:
         - name: QUARKUS_HTTP_PORT
@@ -63,3 +63,4 @@ spec:
           periodSeconds: 5
           failureThreshold: 30
 ---
+
