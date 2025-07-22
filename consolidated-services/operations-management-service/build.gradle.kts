@@ -5,6 +5,11 @@ plugins {
     id("io.quarkus")
 }
 
+repositories {
+    mavenCentral()
+    mavenLocal()
+}
+
 dependencies {
     implementation(enforcedPlatform("io.quarkus.platform:quarkus-bom:3.24.4"))
     implementation("io.quarkus:quarkus-kotlin")

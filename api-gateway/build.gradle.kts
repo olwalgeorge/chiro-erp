@@ -5,14 +5,20 @@ plugins {
     id("io.quarkus")
 }
 
+repositories {
+    mavenCentral()
+    mavenLocal()
+}
+
 dependencies {
     implementation(enforcedPlatform("io.quarkus.platform:quarkus-bom:3.24.4"))
     implementation("io.quarkus:quarkus-kotlin")
     implementation("io.quarkus:quarkus-rest-kotlin-serialization")
     implementation("io.quarkus:quarkus-arc")
     implementation("io.quarkus:quarkus-rest")
-    implementation("io.quarkus:quarkus-rest-client-reactive")
-    implementation("io.quarkus:quarkus-rest-client-reactive-kotlin-serialization")
+    implementation("io.quarkus:quarkus-rest-client")
+    // Removed problematic dependency
+    // Removed problematic dependency
     implementation("io.quarkus:quarkus-config-yaml")
     implementation("io.quarkus:quarkus-micrometer")
     implementation("io.quarkus:quarkus-smallrye-health")
@@ -52,3 +58,4 @@ tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile> {
 tasks.withType<Test> {
     systemProperty("java.util.logging.manager", "org.jboss.logmanager.LogManager")
 }
+
