@@ -13,6 +13,8 @@ $QuarkusVersion = "3.24.4"
 $KotlinVersion = "2.1.21"
 $JavaVersion = "21"
 
+# Auto-include configured for PowerShell scripts
+
 # Define dependency sets based on actual needs
 $DependencySets = @{
     "Gateway"  = @(
