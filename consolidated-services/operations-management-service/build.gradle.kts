@@ -13,29 +13,24 @@ repositories {
 dependencies {
     implementation(enforcedPlatform("io.quarkus.platform:quarkus-bom:3.24.4"))
     
-    // Core Quarkus dependencies - Testing auto-commit functionality
+    // Core Quarkus dependencies
     implementation("io.quarkus:quarkus-kotlin")
     implementation("io.quarkus:quarkus-arc")
-    
-    // REST Server (new Quarkus REST for exposing APIs)
     implementation("io.quarkus:quarkus-rest")
-    
-    // REST Client (new Quarkus REST for inter-service communication)
     implementation("io.quarkus:quarkus-rest-client")
     
     // Serialization: Kotlin for internal, Jackson for external
-    implementation("io.quarkus:quarkus-rest-kotlin-serialization")           // Internal service communication
-    implementation("io.quarkus:quarkus-rest-jackson")                        // External API compatibility
+    implementation("io.quarkus:quarkus-rest-kotlin-serialization")
+    implementation("io.quarkus:quarkus-rest-jackson")
     
-    // Modern Database dependencies with smart schema evolution
-    implementation("io.quarkus:quarkus-hibernate-reactive-panache-kotlin")
-    implementation("io.quarkus:quarkus-jdbc-postgresql")
-    implementation("io.quarkus:quarkus-liquibase")                           // Modern YAML-based migrations
-    implementation("io.quarkus:quarkus-hibernate-validator")                 // Bean validation
+    // Database dependencies (only when JPA entities exist)
+    // implementation("io.quarkus:quarkus-hibernate-reactive-panache-kotlin")
+    // implementation("io.quarkus:quarkus-jdbc-postgresql")
+    // implementation("io.quarkus:quarkus-liquibase")
+    // implementation("io.quarkus:quarkus-hibernate-validator")
     
     // Configuration and observability
     implementation("io.quarkus:quarkus-config-yaml")
-    implementation("io.quarkus:quarkus-micrometer")
     implementation("io.quarkus:quarkus-smallrye-health")
     
     // Kotlin stdlib
@@ -44,15 +39,16 @@ dependencies {
     // Test dependencies
     testImplementation("io.quarkus:quarkus-junit5")
     testImplementation("io.rest-assured:rest-assured")
-    testImplementation("io.quarkus:quarkus-test-h2")                        // In-memory testing
 }
 
 group = "org.chiro"
 version = "1.0.0-SNAPSHOT"
 
 java {
-    sourceCompatibility = JavaVersion.VERSION_21
-    targetCompatibility = JavaVersion.VERSION_21
+    toolchain {
+        languageVersion.set(JavaLanguageVersion.of(21))
+        // Allow any Java 21 vendor - flexible for different environments
+    }
 }
 
 allOpen {
@@ -62,10 +58,15 @@ allOpen {
     annotation("io.quarkus.test.junit.QuarkusTest")
 }
 
+kotlin {
+    jvmToolchain(21)
+}
+
 tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile> {
     compilerOptions {
-        jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_21)
         javaParameters.set(true)
+        jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_21)
+        freeCompilerArgs.addAll("-Xjvm-default=all")
     }
 }
 

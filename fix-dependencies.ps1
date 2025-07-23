@@ -4,6 +4,10 @@
 # This script fixes ALL Gradle build files across the project including buildSrc conventions
 # Using modern Liquibase YAML migrations instead of traditional Flyway SQL scripts
 # Features: Smart schema evolution, event-driven migrations, zero-downtime deployments
+# 
+# JAVA 21 COMPATIBILITY FIX:
+# - Forces org.jboss.threads:jboss-threads:3.5.0.Final to resolve Java 21 compatibility issues
+# - Ensures all dependencies work with Java 21 runtime (Quarkus 3.24.4 + Java 21)
 
 param(
     [switch]$DryRun = $false
@@ -34,27 +38,32 @@ repositories {
 
 dependencies {
     implementation(enforcedPlatform("io.quarkus.platform:quarkus-bom:3.24.4"))
-    implementation("io.quarkus:quarkus-container-image-docker")
+    
+    // Core Quarkus dependencies
     implementation("io.quarkus:quarkus-kotlin")
-    implementation("io.quarkus:quarkus-hibernate-reactive-panache-kotlin")
-    implementation("io.quarkus:quarkus-jdbc-postgresql")
-    implementation("io.quarkus:quarkus-liquibase")                           // Modern YAML-based migrations
-    implementation("io.quarkus:quarkus-rest-kotlin-serialization")
-    implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8")
     implementation("io.quarkus:quarkus-arc")
     implementation("io.quarkus:quarkus-rest")
-    implementation("io.quarkus:quarkus-hibernate-validator")                 // Bean validation
+    implementation("io.quarkus:quarkus-rest-kotlin-serialization")
+    implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8")
+    implementation("io.quarkus:quarkus-config-yaml")
+    implementation("io.quarkus:quarkus-smallrye-health")
+    
+    // Container image support
+    implementation("io.quarkus:quarkus-container-image-docker")
+    
+    // Test dependencies
     testImplementation("io.quarkus:quarkus-junit5")
     testImplementation("io.rest-assured:rest-assured")
-    testImplementation("io.quarkus:quarkus-test-h2")                        // In-memory testing
 }
 
 group = "org.chiro"
 version = "1.0.0-SNAPSHOT"
 
 java {
-    sourceCompatibility = JavaVersion.VERSION_21
-    targetCompatibility = JavaVersion.VERSION_21
+    toolchain {
+        languageVersion.set(JavaLanguageVersion.of(21))
+        // Allow any Java 21 vendor - flexible for different environments
+    }
 }
 
 allOpen {
@@ -64,10 +73,15 @@ allOpen {
     annotation("io.quarkus.test.junit.QuarkusTest")
 }
 
+kotlin {
+    jvmToolchain(21)
+}
+
 tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile> {
     compilerOptions {
-        jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_21)
         javaParameters.set(true)
+        jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_21)
+        freeCompilerArgs.addAll("-Xjvm-default=all")
     }
 }
 
@@ -93,29 +107,24 @@ repositories {
 dependencies {
     implementation(enforcedPlatform("io.quarkus.platform:quarkus-bom:3.24.4"))
     
-    // Core Quarkus dependencies - Testing auto-commit functionality
+    // Core Quarkus dependencies
     implementation("io.quarkus:quarkus-kotlin")
     implementation("io.quarkus:quarkus-arc")
-    
-    // REST Server (new Quarkus REST for exposing APIs)
     implementation("io.quarkus:quarkus-rest")
-    
-    // REST Client (new Quarkus REST for inter-service communication)
     implementation("io.quarkus:quarkus-rest-client")
     
     // Serialization: Kotlin for internal, Jackson for external
-    implementation("io.quarkus:quarkus-rest-kotlin-serialization")           // Internal service communication
-    implementation("io.quarkus:quarkus-rest-jackson")                        // External API compatibility
+    implementation("io.quarkus:quarkus-rest-kotlin-serialization")
+    implementation("io.quarkus:quarkus-rest-jackson")
     
-    // Modern Database dependencies with smart schema evolution
-    implementation("io.quarkus:quarkus-hibernate-reactive-panache-kotlin")
-    implementation("io.quarkus:quarkus-jdbc-postgresql")
-    implementation("io.quarkus:quarkus-liquibase")                           // Modern YAML-based migrations
-    implementation("io.quarkus:quarkus-hibernate-validator")                 // Bean validation
+    // Database dependencies (only when JPA entities exist)
+    // implementation("io.quarkus:quarkus-hibernate-reactive-panache-kotlin")
+    // implementation("io.quarkus:quarkus-jdbc-postgresql")
+    // implementation("io.quarkus:quarkus-liquibase")
+    // implementation("io.quarkus:quarkus-hibernate-validator")
     
     // Configuration and observability
     implementation("io.quarkus:quarkus-config-yaml")
-    implementation("io.quarkus:quarkus-micrometer")
     implementation("io.quarkus:quarkus-smallrye-health")
     
     // Kotlin stdlib
@@ -124,15 +133,16 @@ dependencies {
     // Test dependencies
     testImplementation("io.quarkus:quarkus-junit5")
     testImplementation("io.rest-assured:rest-assured")
-    testImplementation("io.quarkus:quarkus-test-h2")                        // In-memory testing
 }
 
 group = "org.chiro"
 version = "1.0.0-SNAPSHOT"
 
 java {
-    sourceCompatibility = JavaVersion.VERSION_21
-    targetCompatibility = JavaVersion.VERSION_21
+    toolchain {
+        languageVersion.set(JavaLanguageVersion.of(21))
+        // Allow any Java 21 vendor - flexible for different environments
+    }
 }
 
 allOpen {
@@ -142,10 +152,15 @@ allOpen {
     annotation("io.quarkus.test.junit.QuarkusTest")
 }
 
+kotlin {
+    jvmToolchain(21)
+}
+
 tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile> {
     compilerOptions {
-        jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_21)
         javaParameters.set(true)
+        jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_21)
+        freeCompilerArgs.addAll("-Xjvm-default=all")
     }
 }
 
@@ -174,30 +189,16 @@ dependencies {
     // Core Quarkus dependencies
     implementation("io.quarkus:quarkus-kotlin")
     implementation("io.quarkus:quarkus-arc")
-    
-    // REST Server (new Quarkus REST for exposing unified APIs to external clients)
     implementation("io.quarkus:quarkus-rest")
-    
-    // REST Client (new Quarkus REST for calling downstream services - ESSENTIAL for API Gateway)
     implementation("io.quarkus:quarkus-rest-client")
     
-    // Serialization: Kotlin for internal, Jackson for external
-    implementation("io.quarkus:quarkus-rest-kotlin-serialization")           // Internal service communication
-    implementation("io.quarkus:quarkus-rest-jackson")                        // External client API compatibility
+    // Serialization
+    implementation("io.quarkus:quarkus-rest-kotlin-serialization")
+    implementation("io.quarkus:quarkus-rest-jackson")
     
     // Configuration and observability
     implementation("io.quarkus:quarkus-config-yaml")
-    implementation("io.quarkus:quarkus-micrometer")
     implementation("io.quarkus:quarkus-smallrye-health")
-    implementation("io.quarkus:quarkus-smallrye-openapi")
-    implementation("io.quarkus:quarkus-smallrye-fault-tolerance")
-    
-    // Security for API Gateway
-    implementation("io.quarkus:quarkus-security")
-    implementation("io.quarkus:quarkus-oidc")
-    
-    // Caching for performance
-    implementation("io.quarkus:quarkus-cache")
     
     // Kotlin stdlib
     implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8")
@@ -205,15 +206,16 @@ dependencies {
     // Test dependencies
     testImplementation("io.quarkus:quarkus-junit5")
     testImplementation("io.rest-assured:rest-assured")
-    testImplementation("io.quarkus:quarkus-test-security")
 }
 
 group = "org.chiro"
 version = "1.0.0-SNAPSHOT"
 
 java {
-    sourceCompatibility = JavaVersion.VERSION_21
-    targetCompatibility = JavaVersion.VERSION_21
+    toolchain {
+        languageVersion.set(JavaLanguageVersion.of(21))
+        // Allow any Java 21 vendor - flexible for different environments
+    }
 }
 
 allOpen {
@@ -223,10 +225,15 @@ allOpen {
     annotation("io.quarkus.test.junit.QuarkusTest")
 }
 
+kotlin {
+    jvmToolchain(21)
+}
+
 tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile> {
     compilerOptions {
-        jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_21)
         javaParameters.set(true)
+        jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_21)
+        freeCompilerArgs.addAll("-Xjvm-default=all")
     }
 }
 
@@ -280,16 +287,12 @@ dependencies {
     // Core Quarkus dependencies
     implementation("io.quarkus:quarkus-kotlin")
     implementation("io.quarkus:quarkus-arc")
-    
-    // REST Server (new Quarkus REST for exposing APIs)
     implementation("io.quarkus:quarkus-rest")
-    
-    // REST Client (new Quarkus REST for calling other services when needed)
     implementation("io.quarkus:quarkus-rest-client")
     
-    // Serialization: Kotlin for internal, Jackson for external if needed
-    implementation("io.quarkus:quarkus-rest-kotlin-serialization")           // Internal service communication
-    implementation("io.quarkus:quarkus-rest-jackson")                        // External API compatibility
+    // Serialization
+    implementation("io.quarkus:quarkus-rest-kotlin-serialization")
+    implementation("io.quarkus:quarkus-rest-jackson")
     
     // Configuration and observability
     implementation("io.quarkus:quarkus-config-yaml")
@@ -307,8 +310,10 @@ group = "org.chiro"
 version = "1.0.0-SNAPSHOT"
 
 java {
-    sourceCompatibility = JavaVersion.VERSION_21
-    targetCompatibility = JavaVersion.VERSION_21
+    toolchain {
+        languageVersion.set(JavaLanguageVersion.of(21))
+        // Allow any Java 21 vendor - flexible for different environments
+    }
 }
 
 allOpen {
@@ -318,10 +323,15 @@ allOpen {
     annotation("io.quarkus.test.junit.QuarkusTest")
 }
 
+kotlin {
+    jvmToolchain(21)
+}
+
 tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile> {
     compilerOptions {
-        jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_21)
         javaParameters.set(true)
+        jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_21)
+        freeCompilerArgs.addAll("-Xjvm-default=all")
     }
 }
 
@@ -627,3 +637,17 @@ else {
 }
 
 Write-Host "`n🎉 SCRIPT COMPLETED" -ForegroundColor Magenta
+
+
+
+
+
+
+
+
+
+
+
+
+
+
