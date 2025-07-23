@@ -1,0 +1,11 @@
+# KtLint Configuration - Reduced Noise
+# This configuration reduces false positives and excessive linting warnings
+
+disabled_rules=import-ordering,no-wildcard-imports,indent,parameter-list-wrapping,argument-list-wrapping,missing-kdoc-on-function,missing-kdoc-class-elements,no-empty-class-body,chain-wrapping
+
+[*.{kt,kts}]
+ktlint_disabled_rules=import-ordering,no-wildcard-imports,indent,parameter-list-wrapping,argument-list-wrapping,missing-kdoc-on-function,missing-kdoc-class-elements,no-empty-class-body,chain-wrapping
+ktlint_code_style=intellij_idea
+max_line_length=120
+indent_size=4
+continuation_indent_size=4

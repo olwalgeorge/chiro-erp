@@ -4,8 +4,7 @@ import jakarta.persistence.*
 import jakarta.validation.constraints.NotBlank
 import jakarta.validation.constraints.NotNull
 import jakarta.validation.constraints.Size
-import org.chiro.finance.domain.valueobject.AccountType
-import org.chiro.finance.domain.valueobject.Money
+import org.chiro.finance.domain.valueobject.*
 import io.quarkus.hibernate.reactive.panache.kotlin.PanacheEntityBase
 import java.time.LocalDateTime
 import java.util.*
@@ -13,19 +12,21 @@ import java.util.*
 /**
  * Account Entity - Chart of Accounts Aggregate Root
  * 
- * Represents a financial account in the chart of accounts following accounting principles:
- * - Assets (what the company owns)
- * - Liabilities (what the company owes)
- * - Equity (owner's interest)
- * - Revenue (income from operations)
- * - Expenses (costs of operations)
+ * World-class enterprise account implementation following Domain-Driven Design
+ * and international accounting standards (IFRS/GAAP). Supports complex ERP
+ * operations including multi-currency, hierarchical structures, and comprehensive
+ * business rule enforcement.
  * 
  * Features:
- * - Hierarchical account structure with parent-child relationships
- * - Real-time balance calculation with currency support
- * - Account status management (active/inactive/closed)
- * - Audit trail with creation and modification tracking
+ * - Strongly typed identifiers and value objects
+ * - Hierarchical account structure with unlimited levels
+ * - Multi-currency support with automatic validation
+ * - Account status lifecycle management
+ * - Comprehensive business rule validation
+ * - Audit trail with complete history tracking
+ * - Control account and subsidiary ledger support
  * - Account code validation following accounting standards
+ * - Integration points for ERP modules
  * 
  * @author Chiro ERP Finance Team
  * @since 1.0.0
@@ -39,14 +40,18 @@ import java.util.*
         Index(name = "idx_account_type", columnList = "account_type"),
         Index(name = "idx_account_parent", columnList = "parent_account_id"),
         Index(name = "idx_account_status", columnList = "account_status"),
-        Index(name = "idx_account_name", columnList = "account_name")
+        Index(name = "idx_account_name", columnList = "account_name"),
+        Index(name = "idx_account_currency", columnList = "currency_code"),
+        Index(name = "idx_account_category", columnList = "account_category"),
+        Index(name = "idx_account_control", columnList = "is_control_account"),
+        Index(name = "idx_account_active", columnList = "is_active")
     ]
 )
 class Account : PanacheEntityBase {
     
     @Id
     @Column(name = "id")
-    val id: UUID = UUID.randomUUID()
+    val id: AccountId = AccountId.generate()
     
     @field:NotBlank(message = "Account code is required")
     @field:Size(min = 3, max = 20, message = "Account code must be between 3 and 20 characters")
@@ -64,28 +69,82 @@ class Account : PanacheEntityBase {
     
     @field:NotNull(message = "Account type is required")
     @Enumerated(EnumType.STRING)
-    @Column(name = "account_type", nullable = false, length = 20)
+    @Column(name = "account_type", nullable = false, length = 30)
     lateinit var accountType: AccountType
+    
+    @field:NotNull(message = "Account category is required")
+    @Enumerated(EnumType.STRING)
+    @Column(name = "account_category", nullable = false, length = 20)
+    var accountCategory: AccountCategory = AccountCategory.ASSET
+        private set
+    
+    @field:NotNull(message = "Account sub-category is required")
+    @Enumerated(EnumType.STRING)
+    @Column(name = "account_sub_category", nullable = false, length = 30)
+    var accountSubCategory: AccountSubCategory = AccountSubCategory.CURRENT_ASSET
+        private set
     
     @Embedded
     @AttributeOverrides(
         AttributeOverride(name = "amount", column = Column(name = "balance_amount", precision = 19, scale = 4)),
-        AttributeOverride(name = "currencyCode", column = Column(name = "balance_currency", length = 3))
+        AttributeOverride(name = "currencyCode", column = Column(name = "currency_code", length = 3))
     )
     var balance: Money = Money.zero()
+        private set
     
-    // Parent-Child Relationship for Account Hierarchy
+    // Enhanced Currency Support
+    @Embedded
+    @AttributeOverrides(
+        AttributeOverride(name = "code", column = Column(name = "currency_code")),
+        AttributeOverride(name = "name", column = Column(name = "currency_name")),
+        AttributeOverride(name = "symbol", column = Column(name = "currency_symbol")),
+        AttributeOverride(name = "decimalPlaces", column = Column(name = "currency_decimal_places"))
+    )
+    var currency: Currency = Currency.DEFAULT
+        private set
+    
+    // Hierarchical Structure
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "parent_account_id")
     var parentAccount: Account? = null
+        private set
     
     @OneToMany(mappedBy = "parentAccount", cascade = [CascadeType.ALL], fetch = FetchType.LAZY)
     var childAccounts: MutableSet<Account> = mutableSetOf()
+        private set
     
-    @field:NotNull(message = "Account status is required")
-    @Enumerated(EnumType.STRING)
-    @Column(name = "account_status", nullable = false, length = 20)
-    var accountStatus: AccountStatus = AccountStatus.ACTIVE
+    // Account Configuration
+    @Column(name = "is_active", nullable = false)
+    var isActive: Boolean = true
+        private set
+    
+    @Column(name = "is_control_account", nullable = false)
+    var isControlAccount: Boolean = false
+        private set
+    
+    @Column(name = "allows_direct_posting", nullable = false)
+    var allowsDirectPosting: Boolean = true
+        private set
+    
+    @Column(name = "requires_subsidiary", nullable = false)
+    var requiresSubsidiary: Boolean = false
+        private set
+    
+    @Column(name = "requires_reconciliation", nullable = false)
+    var requiresReconciliation: Boolean = false
+    
+    @Column(name = "allow_manual_entries", nullable = false)
+    var allowManualEntries: Boolean = true
+    
+    @Column(name = "is_system_account", nullable = false)
+    var isSystemAccount: Boolean = false
+    
+    // Tax and Regulatory
+    @Column(name = "tax_code", length = 10)
+    var taxCode: String? = null
+    
+    @Column(name = "external_account_id", length = 50)
+    var externalAccountId: String? = null
     
     // Audit Fields
     @Column(name = "created_at", nullable = false)
@@ -93,6 +152,7 @@ class Account : PanacheEntityBase {
     
     @Column(name = "updated_at")
     var updatedAt: LocalDateTime? = null
+        private set
     
     @field:Size(max = 100, message = "Created by cannot exceed 100 characters")
     @Column(name = "created_by", length = 100)
@@ -101,63 +161,134 @@ class Account : PanacheEntityBase {
     @field:Size(max = 100, message = "Updated by cannot exceed 100 characters")
     @Column(name = "updated_by", length = 100)
     var updatedBy: String? = null
+        private set
     
-    // Account Configuration
-    @Column(name = "is_system_account", nullable = false)
-    var isSystemAccount: Boolean = false
+    // Version for optimistic locking
+    @Version
+    @Column(name = "version")
+    var version: Long = 0
+        private set
     
-    @Column(name = "allow_manual_entries", nullable = false)
-    var allowManualEntries: Boolean = true
     
-    @Column(name = "require_reconciliation", nullable = false)
-    var requireReconciliation: Boolean = false
-    
-    // ===================== BUSINESS LOGIC =====================
+    // ===================== DOMAIN BUSINESS LOGIC =====================
     
     /**
-     * Updates account balance with proper currency validation
+     * Factory method to create a new account with validation
      */
-    fun updateBalance(newBalance: Money) {
-        require(newBalance.currencyCode == balance.currencyCode) {
-            "Currency mismatch: Account balance is in ${balance.currencyCode}, but trying to update with ${newBalance.currencyCode}"
+    companion object {
+        fun create(
+            accountCode: String,
+            accountName: String,
+            accountType: AccountType,
+            currency: Currency = Currency.DEFAULT,
+            description: String? = null,
+            parentAccount: Account? = null,
+            createdBy: String? = null
+        ): Account {
+            val account = Account().apply {
+                this.accountCode = accountCode
+                this.accountName = accountName
+                this.accountType = accountType
+                this.accountCategory = accountType.category
+                this.accountSubCategory = accountType.subCategory
+                this.currency = currency
+                this.balance = Money.zero(currency.code)
+                this.description = description
+                this.createdBy = createdBy
+                this.isControlAccount = accountType.isControlAccount
+                this.allowsDirectPosting = accountType.allowsDirectPosting
+                this.requiresSubsidiary = accountType.requiresSubsidiary
+            }
+            
+            // Set parent relationship if provided
+            parentAccount?.let { account.setParentAccount(it) }
+            
+            // Validate the account
+            account.validateAccount()
+            
+            return account
         }
+    }
+    
+    /**
+     * Comprehensive account validation
+     */
+    private fun validateAccount() {
+        require(accountCode.isNotBlank()) { "Account code cannot be blank" }
+        require(accountName.isNotBlank()) { "Account name cannot be blank" }
+        require(accountType.isValidAccountCode(accountCode)) { 
+            "Account code '$accountCode' is not valid for account type $accountType" 
+        }
+        require(balance.currencyCode == currency.code) {
+            "Balance currency (${balance.currencyCode}) must match account currency (${currency.code})"
+        }
+        
+        // Validate parent-child relationship
+        parentAccount?.let { parent ->
+            require(parent.accountCategory == this.accountCategory) {
+                "Child account category (${this.accountCategory}) must match parent category (${parent.accountCategory})"
+            }
+            require(parent.currency.code == this.currency.code) {
+                "Child account currency (${this.currency.code}) must match parent currency (${parent.currency.code})"
+            }
+            require(parent.id != this.id) { "Account cannot be its own parent" }
+        }
+    }
+    
+    /**
+     * Updates account balance with comprehensive validation
+     */
+    fun updateBalance(newBalance: Money, updatedBy: String? = null) {
+        require(newBalance.currencyCode == currency.code) {
+            "Currency mismatch: Account uses ${currency.code}, but trying to update with ${newBalance.currencyCode}"
+        }
+        require(isActive) { "Cannot update balance on inactive account" }
+        require(allowsDirectPosting) { "Direct posting not allowed on this account" }
+        
         balance = newBalance
-        updatedAt = LocalDateTime.now()
+        this.updatedBy = updatedBy
+        markAsUpdated()
     }
     
     /**
-     * Adds amount to current balance
+     * Adds amount to current balance with validation
      */
-    fun addToBalance(amount: Money) {
+    fun addToBalance(amount: Money, updatedBy: String? = null) {
+        require(amount.currencyCode == currency.code) {
+            "Currency mismatch: Account uses ${currency.code}, but trying to add ${amount.currencyCode}"
+        }
+        require(isActive) { "Cannot modify balance on inactive account" }
+        
         balance += amount
-        updatedAt = LocalDateTime.now()
+        this.updatedBy = updatedBy
+        markAsUpdated()
     }
     
     /**
-     * Subtracts amount from current balance
+     * Subtracts amount from current balance with validation
      */
-    fun subtractFromBalance(amount: Money) {
+    fun subtractFromBalance(amount: Money, updatedBy: String? = null) {
+        require(amount.currencyCode == currency.code) {
+            "Currency mismatch: Account uses ${currency.code}, but trying to subtract ${amount.currencyCode}"
+        }
+        require(isActive) { "Cannot modify balance on inactive account" }
+        
         balance -= amount
-        updatedAt = LocalDateTime.now()
+        this.updatedBy = updatedBy
+        markAsUpdated()
     }
     
     /**
      * Checks if account allows debit entries based on account type
      */
     val allowsDebit: Boolean
-        get() = when (accountType) {
-            AccountType.ASSET, AccountType.EXPENSE -> true
-            AccountType.LIABILITY, AccountType.EQUITY, AccountType.REVENUE -> false
-        }
+        get() = accountType.normalBalance == BalanceType.DEBIT
     
     /**
      * Checks if account allows credit entries based on account type
      */
     val allowsCredit: Boolean
-        get() = when (accountType) {
-            AccountType.LIABILITY, AccountType.EQUITY, AccountType.REVENUE -> true
-            AccountType.ASSET, AccountType.EXPENSE -> false
-        }
+        get() = accountType.normalBalance == BalanceType.CREDIT
     
     /**
      * Checks if account is a root account (no parent)
@@ -202,63 +333,114 @@ class Account : PanacheEntityBase {
         }
     
     /**
+     * Sets parent account with validation
+     */
+    fun setParentAccount(parent: Account, updatedBy: String? = null) {
+        require(parent.id != this.id) { "Account cannot be its own parent" }
+        require(parent.accountCategory == this.accountCategory) {
+            "Parent account category (${parent.accountCategory}) must match child category (${this.accountCategory})"
+        }
+        require(parent.currency.code == this.currency.code) {
+            "Parent account currency (${parent.currency.code}) must match child currency (${this.currency.code})"
+        }
+        require(!wouldCreateCycle(parent)) { "Setting parent would create a circular hierarchy" }
+        
+        // Remove from old parent
+        this.parentAccount?.childAccounts?.remove(this)
+        
+        // Set new parent
+        this.parentAccount = parent
+        parent.childAccounts.add(this)
+        
+        this.updatedBy = updatedBy
+        markAsUpdated()
+    }
+    
+    /**
+     * Checks if setting a parent would create a circular reference
+     */
+    private fun wouldCreateCycle(potentialParent: Account): Boolean {
+        var current: Account? = potentialParent
+        while (current != null) {
+            if (current.id == this.id) return true
+            current = current.parentAccount
+        }
+        return false
+    }
+    
+    /**
+     * Removes parent account relationship
+     */
+    fun removeParentAccount(updatedBy: String? = null) {
+        parentAccount?.childAccounts?.remove(this)
+        parentAccount = null
+        this.updatedBy = updatedBy
+        markAsUpdated()
+    }
+    
+    /**
+     * Adds a child account with validation
+     */
+    fun addChildAccount(childAccount: Account, updatedBy: String? = null) {
+        childAccount.setParentAccount(this, updatedBy)
+    }
+    
+    /**
+     * Removes a child account
+     */
+    fun removeChildAccount(childAccount: Account, updatedBy: String? = null) {
+        require(childAccounts.contains(childAccount)) { "Child account not found" }
+        childAccount.removeParentAccount(updatedBy)
+    }
+    
+    /**
      * Activates the account
      */
-    fun activate() {
-        require(accountStatus != AccountStatus.CLOSED) { "Cannot activate a closed account" }
-        accountStatus = AccountStatus.ACTIVE
-        updatedAt = LocalDateTime.now()
+    fun activate(activatedBy: String? = null) {
+        require(!isSystemAccount || activatedBy != null) { "System accounts require user authorization" }
+        
+        isActive = true
+        this.updatedBy = activatedBy
+        markAsUpdated()
     }
     
     /**
      * Deactivates the account
      */
-    fun deactivate() {
-        require(accountStatus != AccountStatus.CLOSED) { "Cannot deactivate a closed account" }
+    fun deactivate(deactivatedBy: String? = null) {
         require(balance.isZero) { "Cannot deactivate account with non-zero balance: $balance" }
-        accountStatus = AccountStatus.INACTIVE
-        updatedAt = LocalDateTime.now()
-    }
-    
-    /**
-     * Closes the account permanently
-     */
-    fun close() {
-        require(balance.isZero) { "Cannot close account with non-zero balance: $balance" }
-        require(childAccounts.isEmpty()) { "Cannot close account with child accounts" }
-        accountStatus = AccountStatus.CLOSED
-        updatedAt = LocalDateTime.now()
-    }
-    
-    /**
-     * Adds a child account to this account
-     */
-    fun addChildAccount(childAccount: Account) {
-        require(childAccount.accountType == this.accountType) {
-            "Child account type (${childAccount.accountType}) must match parent account type ($accountType)"
-        }
-        require(childAccount.balance.currencyCode == this.balance.currencyCode) {
-            "Child account currency (${childAccount.balance.currencyCode}) must match parent currency (${balance.currencyCode})"
-        }
+        require(childAccounts.all { !it.isActive }) { "Cannot deactivate account with active child accounts" }
+        require(!isSystemAccount || deactivatedBy != null) { "System accounts require user authorization" }
         
-        childAccount.parentAccount = this
-        childAccounts.add(childAccount)
-        updatedAt = LocalDateTime.now()
+        isActive = false
+        this.updatedBy = deactivatedBy
+        markAsUpdated()
     }
     
     /**
-     * Validates account code format based on accounting standards
+     * Marks account as control account (requires subsidiary ledger)
      */
-    fun validateAccountCode(): Boolean {
-        val codePattern = when (accountType) {
-            AccountType.ASSET -> "^[1]\\d{2,19}$"           // 1000-1999
-            AccountType.LIABILITY -> "^[2]\\d{2,19}$"       // 2000-2999
-            AccountType.EQUITY -> "^[3]\\d{2,19}$"          // 3000-3999
-            AccountType.REVENUE -> "^[4]\\d{2,19}$"         // 4000-4999
-            AccountType.EXPENSE -> "^[5-9]\\d{2,19}$"       // 5000-9999
-        }
+    fun markAsControlAccount(markedBy: String? = null) {
+        require(isLeafAccount) { "Only leaf accounts can be marked as control accounts" }
         
-        return accountCode.matches(Regex(codePattern))
+        isControlAccount = true
+        allowsDirectPosting = false
+        requiresSubsidiary = true
+        this.updatedBy = markedBy
+        markAsUpdated()
+    }
+    
+    /**
+     * Removes control account designation
+     */
+    fun removeControlAccountDesignation(removedBy: String? = null) {
+        require(balance.isZero) { "Cannot remove control account designation with non-zero balance" }
+        
+        isControlAccount = false
+        allowsDirectPosting = true
+        requiresSubsidiary = false
+        this.updatedBy = removedBy
+        markAsUpdated()
     }
     
     /**
@@ -274,12 +456,110 @@ class Account : PanacheEntityBase {
         return total
     }
     
-    @PreUpdate
-    fun preUpdate() {
+    /**
+     * Gets all descendant accounts (children, grandchildren, etc.)
+     */
+    fun getAllDescendants(): Set<Account> {
+        val descendants = mutableSetOf<Account>()
+        
+        fun collectDescendants(account: Account) {
+            for (child in account.childAccounts) {
+                descendants.add(child)
+                collectDescendants(child)
+            }
+        }
+        
+        collectDescendants(this)
+        return descendants
+    }
+    
+    /**
+     * Gets the root account of the hierarchy
+     */
+    fun getRootAccount(): Account {
+        var current = this
+        while (current.parentAccount != null) {
+            current = current.parentAccount!!
+        }
+        return current
+    }
+    
+    /**
+     * Checks if this account is an ancestor of the given account
+     */
+    fun isAncestorOf(account: Account): Boolean {
+        var current: Account? = account.parentAccount
+        while (current != null) {
+            if (current.id == this.id) return true
+            current = current.parentAccount
+        }
+        return false
+    }
+    
+    /**
+     * Checks if this account is a descendant of the given account
+     */
+    fun isDescendantOf(account: Account): Boolean = account.isAncestorOf(this)
+    
+    /**
+     * Updates the currency of the account (requires zero balance)
+     */
+    fun updateCurrency(newCurrency: Currency, updatedBy: String? = null) {
+        require(balance.isZero) { "Cannot change currency with non-zero balance" }
+        require(childAccounts.all { it.balance.isZero }) { "Cannot change currency with child accounts having non-zero balances" }
+        
+        currency = newCurrency
+        balance = Money.zero(newCurrency.code)
+        this.updatedBy = updatedBy
+        markAsUpdated()
+        
+        // Update all child accounts
+        childAccounts.forEach { it.updateCurrency(newCurrency, updatedBy) }
+    }
+    
+    /**
+     * Validates account business rules
+     */
+    fun validateBusinessRules(): List<String> {
+        val violations = mutableListOf<String>()
+        
+        if (isControlAccount && allowsDirectPosting) {
+            violations.add("Control accounts should not allow direct posting")
+        }
+        
+        if (requiresSubsidiary && !isControlAccount) {
+            violations.add("Only control accounts should require subsidiary ledgers")
+        }
+        
+        if (!isActive && !balance.isZero) {
+            violations.add("Inactive accounts should have zero balance")
+        }
+        
+        if (parentAccount != null && parentAccount!!.accountCategory != accountCategory) {
+            violations.add("Parent and child accounts must have the same category")
+        }
+        
+        if (parentAccount != null && parentAccount!!.currency.code != currency.code) {
+            violations.add("Parent and child accounts must use the same currency")
+        }
+        
+        return violations
+    }
+    
+    /**
+     * Helper method to mark the entity as updated
+     */
+    private fun markAsUpdated() {
         updatedAt = LocalDateTime.now()
     }
     
-    override fun toString(): String = "Account(code='$accountCode', name='$accountName', type=$accountType, balance=$balance)"
+    @PreUpdate
+    fun preUpdate() {
+        markAsUpdated()
+    }
+    
+    override fun toString(): String = 
+        "Account(id=${id.value}, code='$accountCode', name='$accountName', type=$accountType, balance=$balance, currency=${currency.code})"
     
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
@@ -288,13 +568,4 @@ class Account : PanacheEntityBase {
     }
     
     override fun hashCode(): Int = id.hashCode()
-}
-
-/**
- * Account Status Enumeration
- */
-enum class AccountStatus {
-    ACTIVE,     // Account is active and can be used
-    INACTIVE,   // Account is temporarily inactive
-    CLOSED      // Account is permanently closed
 }
