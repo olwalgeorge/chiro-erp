@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+                        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.20.xsd">
+
+    <!-- Core infrastructure tables -->
+    <include file="db/changelog/001-event-store.xml"/>
+    
+    <!-- Module-specific tables will be included here as they are implemented -->
+    <!-- <include file="db/changelog/002-finance-tables.xml"/> -->
+    <!-- <include file="db/changelog/003-inventory-tables.xml"/> -->
+    <!-- <include file="db/changelog/004-sales-tables.xml"/> -->
+
+</databaseChangeLog>

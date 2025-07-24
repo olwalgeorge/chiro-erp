@@ -13,16 +13,16 @@ data class CustomerCreatedEvent(
     val customerName: String,
     val email: String,
     val creditLimit: String? = null,
-    aggregateId: String = customerId
-) : BaseIntegrationEvent(aggregateId)
+    override val aggregateId: String = customerId
+) : BaseIntegrationEvent(aggregateId, "Customer")
 
 data class AccountCreatedEvent(
     val accountId: String,
     val accountName: String,
     val accountType: String,
     val currency: String,
-    aggregateId: String = accountId
-) : BaseIntegrationEvent(aggregateId)
+    override val aggregateId: String = accountId
+) : BaseIntegrationEvent(aggregateId, "Account")
 
 data class TransactionRecordedEvent(
     val transactionId: String,
@@ -30,8 +30,8 @@ data class TransactionRecordedEvent(
     val currency: String,
     val customerId: String? = null,
     val vendorId: String? = null,
-    aggregateId: String = transactionId
-) : BaseIntegrationEvent(aggregateId)
+    override val aggregateId: String = transactionId
+) : BaseIntegrationEvent(aggregateId, "Transaction")
 
 // Inventory Integration Events
 data class ProductCreatedEvent(
@@ -40,8 +40,8 @@ data class ProductCreatedEvent(
     val productName: String,
     val price: String,
     val currency: String,
-    aggregateId: String = productId
-) : BaseIntegrationEvent(aggregateId)
+    override val aggregateId: String = productId
+) : BaseIntegrationEvent(aggregateId, "Product")
 
 data class StockLevelChangedEvent(
     val productId: String,
@@ -49,8 +49,8 @@ data class StockLevelChangedEvent(
     val previousQuantity: Int,
     val newQuantity: Int,
     val changeReason: String,
-    aggregateId: String = productId
-) : BaseIntegrationEvent(aggregateId)
+    override val aggregateId: String = productId
+) : BaseIntegrationEvent(aggregateId, "Stock")
 
 data class StockReservedEvent(
     val reservationId: String,
@@ -59,16 +59,16 @@ data class StockReservedEvent(
     val quantity: Int,
     val orderId: String? = null,
     val workOrderId: String? = null,
-    aggregateId: String = reservationId
-) : BaseIntegrationEvent(aggregateId)
+    override val aggregateId: String = reservationId
+) : BaseIntegrationEvent(aggregateId, "StockReservation")
 
 data class StockReleasedEvent(
     val reservationId: String,
     val productId: String,
     val locationId: String,
     val quantity: Int,
-    aggregateId: String = reservationId
-) : BaseIntegrationEvent(aggregateId)
+    override val aggregateId: String = reservationId
+) : BaseIntegrationEvent(aggregateId, "StockReservation")
 
 // Sales Integration Events
 data class SalesOrderCreatedEvent(
@@ -77,16 +77,16 @@ data class SalesOrderCreatedEvent(
     val orderTotal: String,
     val currency: String,
     val items: List<OrderItemInfo>,
-    aggregateId: String = orderId
-) : BaseIntegrationEvent(aggregateId)
+    override val aggregateId: String = orderId
+) : BaseIntegrationEvent(aggregateId, "SalesOrder")
 
 data class SalesOrderStatusChangedEvent(
     val orderId: String,
     val previousStatus: String,
     val newStatus: String,
     val customerId: String,
-    aggregateId: String = orderId
-) : BaseIntegrationEvent(aggregateId)
+    override val aggregateId: String = orderId
+) : BaseIntegrationEvent(aggregateId, "SalesOrder")
 
 data class SalesOrderShippedEvent(
     val orderId: String,
@@ -94,8 +94,8 @@ data class SalesOrderShippedEvent(
     val shippingAddress: String,
     val trackingNumber: String? = null,
     val items: List<OrderItemInfo>,
-    aggregateId: String = orderId
-) : BaseIntegrationEvent(aggregateId)
+    override val aggregateId: String = orderId
+) : BaseIntegrationEvent(aggregateId, "SalesOrder")
 
 // Manufacturing Integration Events
 data class WorkOrderCreatedEvent(
@@ -104,8 +104,8 @@ data class WorkOrderCreatedEvent(
     val quantity: Int,
     val dueDate: String,
     val salesOrderId: String? = null,
-    aggregateId: String = workOrderId
-) : BaseIntegrationEvent(aggregateId)
+    override val aggregateId: String = workOrderId
+) : BaseIntegrationEvent(aggregateId, "WorkOrder")
 
 data class WorkOrderCompletedEvent(
     val workOrderId: String,
@@ -113,16 +113,16 @@ data class WorkOrderCompletedEvent(
     val plannedQuantity: Int,
     val actualQuantity: Int,
     val locationId: String,
-    aggregateId: String = workOrderId
-) : BaseIntegrationEvent(aggregateId)
+    override val aggregateId: String = workOrderId
+) : BaseIntegrationEvent(aggregateId, "WorkOrder")
 
 data class ProductionStartedEvent(
     val workOrderId: String,
     val productId: String,
     val quantity: Int,
     val startDate: String,
-    aggregateId: String = workOrderId
-) : BaseIntegrationEvent(aggregateId)
+    override val aggregateId: String = workOrderId
+) : BaseIntegrationEvent(aggregateId, "WorkOrder")
 
 // Procurement Integration Events
 data class PurchaseOrderCreatedEvent(
@@ -131,24 +131,24 @@ data class PurchaseOrderCreatedEvent(
     val orderTotal: String,
     val currency: String,
     val items: List<PurchaseOrderItemInfo>,
-    aggregateId: String = purchaseOrderId
-) : BaseIntegrationEvent(aggregateId)
+    override val aggregateId: String = purchaseOrderId
+) : BaseIntegrationEvent(aggregateId, "PurchaseOrder")
 
 data class PurchaseOrderReceivedEvent(
     val purchaseOrderId: String,
     val vendorId: String,
     val receivedDate: String,
     val items: List<PurchaseOrderItemInfo>,
-    aggregateId: String = purchaseOrderId
-) : BaseIntegrationEvent(aggregateId)
+    override val aggregateId: String = purchaseOrderId
+) : BaseIntegrationEvent(aggregateId, "PurchaseOrder")
 
 data class VendorCreatedEvent(
     val vendorId: String,
     val vendorName: String,
     val email: String,
     val paymentTerms: String? = null,
-    aggregateId: String = vendorId
-) : BaseIntegrationEvent(aggregateId)
+    override val aggregateId: String = vendorId
+) : BaseIntegrationEvent(aggregateId, "Vendor")
 
 // Supporting data classes
 data class OrderItemInfo(

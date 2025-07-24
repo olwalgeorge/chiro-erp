@@ -1,6 +1,6 @@
 package org.chiro.core_business_service.shared.domain.event
 
-import java.time.LocalDateTime
+import java.time.Instant
 import java.util.*
 
 /**
@@ -9,9 +9,10 @@ import java.util.*
 interface DomainEvent {
     val eventId: String
     val aggregateId: String
-    val occurredOn: LocalDateTime
+    val aggregateType: String
+    val aggregateVersion: Long
+    val timestamp: Instant
     val eventType: String
-    val version: Long
 }
 
 /**
@@ -19,9 +20,10 @@ interface DomainEvent {
  */
 abstract class BaseDomainEvent(
     override val aggregateId: String,
-    override val version: Long = 1L,
+    override val aggregateType: String,
+    override val aggregateVersion: Long = 1L,
     override val eventId: String = UUID.randomUUID().toString(),
-    override val occurredOn: LocalDateTime = LocalDateTime.now()
+    override val timestamp: Instant = Instant.now()
 ) : DomainEvent {
     
     override val eventType: String = this::class.simpleName ?: "UnknownEvent"
@@ -40,7 +42,7 @@ abstract class BaseDomainEvent(
     }
     
     override fun toString(): String {
-        return "${this::class.simpleName}(eventId=$eventId, aggregateId=$aggregateId, occurredOn=$occurredOn)"
+        return "${this::class.simpleName}(eventId=$eventId, aggregateId=$aggregateId, timestamp=$timestamp)"
     }
 }
 
@@ -54,7 +56,8 @@ interface IntegrationEvent : DomainEvent
  */
 abstract class BaseIntegrationEvent(
     aggregateId: String,
-    version: Long = 1L,
+    aggregateType: String,
+    aggregateVersion: Long = 1L,
     eventId: String = UUID.randomUUID().toString(),
-    occurredOn: LocalDateTime = LocalDateTime.now()
-) : BaseDomainEvent(aggregateId, version, eventId, occurredOn), IntegrationEvent
+    timestamp: Instant = Instant.now()
+) : BaseDomainEvent(aggregateId, aggregateType, aggregateVersion, eventId, timestamp), IntegrationEvent

@@ -35,10 +35,6 @@ dependencies {
     implementation("io.quarkus:quarkus-smallrye-openapi")
     implementation("io.quarkus:quarkus-smallrye-metrics")
     
-    // Event Messaging for EDA
-    implementation("io.quarkus:quarkus-messaging")
-    implementation("io.quarkus:quarkus-smallrye-reactive-messaging")
-    
     // Cache for performance
     implementation("io.quarkus:quarkus-cache")
     

@@ -9,6 +9,10 @@ import jakarta.enterprise.event.Observes
 import jakarta.inject.Inject
 import org.chiro.core_business_service.shared.infrastructure.configuration.ApplicationConfiguration
 import org.chiro.core_business_service.shared.infrastructure.configuration.ModuleConfiguration
+import org.chiro.core_business_service.shared.infrastructure.module.ModuleRegistry
+import org.chiro.core_business_service.shared.infrastructure.event.DomainEventPublisherImpl
+import org.chiro.core_business_service.shared.infrastructure.transaction.TransactionManagerImpl
+import org.chiro.core_business_service.shared.infrastructure.validation.ValidationServiceImpl
 import org.eclipse.microprofile.config.inject.ConfigProperty
 import org.jboss.logging.Logger
 
@@ -35,6 +39,18 @@ class CoreBusinessServiceApplication : QuarkusApplication {
     @Inject
     lateinit var moduleConfig: ModuleConfiguration
     
+    @Inject
+    lateinit var moduleRegistry: ModuleRegistry
+    
+    @Inject
+    lateinit var eventPublisher: DomainEventPublisherImpl
+    
+    @Inject
+    lateinit var transactionManager: TransactionManagerImpl
+    
+    @Inject
+    lateinit var validationService: ValidationServiceImpl
+    
     private val logger = Logger.getLogger(CoreBusinessServiceApplication::class.java)
     
     override fun run(vararg args: String?): Int {
@@ -60,9 +76,15 @@ class CoreBusinessServiceApplication : QuarkusApplication {
     /**
      * Startup event handler - called when the application starts
      */
-    fun onStart(@Observes event: StartupEvent) {
+    suspend fun onStart(@Observes event: StartupEvent) {
         logger.info("🎯 Core Business Service startup complete")
         logger.info("🔧 Configuration: Strict validation=${applicationConfig.strictValidationMode}, Event sourcing=${applicationConfig.eventSourcingEnabled}")
+        
+        // Validate core infrastructure
+        validateCoreInfrastructure()
+        
+        // Log module registry status
+        logModuleRegistryStatus()
     }
     
     private fun logModuleConfiguration() {
@@ -72,6 +94,58 @@ class CoreBusinessServiceApplication : QuarkusApplication {
         logger.info("   💼 Sales: ${if (moduleConfig.salesEnabled) "ENABLED" else "DISABLED"} (${moduleConfig.salesBasePath})")
         logger.info("   🏭 Manufacturing: ${if (moduleConfig.manufacturingEnabled) "ENABLED" else "DISABLED"} (${moduleConfig.manufacturingBasePath})")
         logger.info("   🛒 Procurement: ${if (moduleConfig.procurementEnabled) "ENABLED" else "DISABLED"} (${moduleConfig.procurementBasePath})")
+    }
+    
+    /**
+     * Validate that all core infrastructure components are properly initialized.
+     */
+    private suspend fun validateCoreInfrastructure() {
+        logger.info("🔍 Validating core infrastructure...")
+        
+        try {
+            // Test event publishing
+            logger.debug("✓ Event publisher: ${eventPublisher::class.simpleName}")
+            
+            // Test transaction manager
+            val txStatus = transactionManager.getCurrentTransactionStatus()
+            logger.debug("✓ Transaction manager: $txStatus")
+            
+            // Test validation service
+            logger.debug("✓ Validation service: ${validationService::class.simpleName}")
+            
+            logger.info("✅ Core infrastructure validation complete")
+            
+        } catch (e: Exception) {
+            logger.error("❌ Core infrastructure validation failed", e)
+            throw e
+        }
+    }
+    
+    /**
+     * Log the status of the module registry.
+     */
+    private suspend fun logModuleRegistryStatus() {
+        try {
+            val moduleCount = moduleRegistry.getModuleCount()
+            val registeredModules = moduleRegistry.getRegisteredModules()
+            
+            logger.info("🏛️ Module Registry Status:")
+            logger.info("   📊 Total modules: $moduleCount")
+            
+            if (registeredModules.isNotEmpty()) {
+                logger.info("   📋 Registered modules:")
+                registeredModules.forEach { moduleName ->
+                    val health = moduleRegistry.getModuleHealth(moduleName)
+                    val status = health?.status ?: "UNKNOWN"
+                    logger.info("     • $moduleName: $status")
+                }
+            } else {
+                logger.info("   ⚠️ No modules registered yet")
+            }
+            
+        } catch (e: Exception) {
+            logger.error("Failed to get module registry status", e)
+        }
     }
 }
 

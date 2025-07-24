@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+                        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.20.xsd">
+
+    <changeSet id="001-create-event-store-table" author="core-business-service">
+        <comment>Create event store table for domain event persistence</comment>
+        
+        <createTable tableName="event_store">
+            <column name="event_id" type="VARCHAR(255)">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            
+            <column name="event_type" type="VARCHAR(255)">
+                <constraints nullable="false"/>
+            </column>
+            
+            <column name="aggregate_id" type="VARCHAR(255)">
+                <constraints nullable="false"/>
+            </column>
+            
+            <column name="aggregate_type" type="VARCHAR(255)">
+                <constraints nullable="false"/>
+            </column>
+            
+            <column name="aggregate_version" type="BIGINT">
+                <constraints nullable="false"/>
+            </column>
+            
+            <column name="event_data" type="TEXT">
+                <constraints nullable="false"/>
+            </column>
+            
+            <column name="metadata" type="JSONB">
+                <constraints nullable="true"/>
+            </column>
+            
+            <column name="timestamp" type="TIMESTAMP WITH TIME ZONE">
+                <constraints nullable="false"/>
+            </column>
+            
+            <column name="created_at" type="TIMESTAMP WITH TIME ZONE" defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <!-- Indexes for efficient querying -->
+        <createIndex tableName="event_store" indexName="idx_event_store_aggregate">
+            <column name="aggregate_id"/>
+            <column name="aggregate_type"/>
+            <column name="aggregate_version"/>
+        </createIndex>
+
+        <createIndex tableName="event_store" indexName="idx_event_store_event_type">
+            <column name="event_type"/>
+            <column name="timestamp"/>
+        </createIndex>
+
+        <createIndex tableName="event_store" indexName="idx_event_store_timestamp">
+            <column name="timestamp"/>
+        </createIndex>
+
+        <createIndex tableName="event_store" indexName="idx_event_store_created_at">
+            <column name="created_at"/>
+        </createIndex>
+
+        <!-- Unique constraint to prevent duplicate events for same aggregate version -->
+        <addUniqueConstraint 
+            tableName="event_store" 
+            columnNames="aggregate_id,aggregate_type,aggregate_version"
+            constraintName="uk_event_store_aggregate_version"/>
+
+    </changeSet>
+
+    <changeSet id="002-add-event-store-comments" author="core-business-service">
+        <comment>Add table and column comments for documentation</comment>
+        
+        <sql>
+            COMMENT ON TABLE event_store IS 'Event store for domain event persistence and audit trail';
+            COMMENT ON COLUMN event_store.event_id IS 'Unique identifier for the event';
+            COMMENT ON COLUMN event_store.event_type IS 'Type/name of the domain event';
+            COMMENT ON COLUMN event_store.aggregate_id IS 'Identifier of the aggregate that generated the event';
+            COMMENT ON COLUMN event_store.aggregate_type IS 'Type of the aggregate that generated the event';
+            COMMENT ON COLUMN event_store.aggregate_version IS 'Version of the aggregate when the event was generated';
+            COMMENT ON COLUMN event_store.event_data IS 'Serialized event data in JSON format';
+            COMMENT ON COLUMN event_store.metadata IS 'Additional metadata about the event in JSONB format';
+            COMMENT ON COLUMN event_store.timestamp IS 'When the event occurred in the domain';
+            COMMENT ON COLUMN event_store.created_at IS 'When the event was stored in the database';
+        </sql>
+    </changeSet>
+
+</databaseChangeLog>
