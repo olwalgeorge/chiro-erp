@@ -3,7 +3,7 @@ package org.chiro.core_business_service.shared.domain.exception
 /**
  * Base class for all domain exceptions
  */
-abstract class DomainException(
+open class DomainException(
     message: String,
     cause: Throwable? = null
 ) : RuntimeException(message, cause)
