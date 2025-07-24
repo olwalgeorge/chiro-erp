@@ -1,0 +1,171 @@
+# Core Business Service Configuration
+# Production-ready configuration following ERP industry standards
+
+# Application Configuration
+quarkus:
+  application:
+    name: "Core Business Service"
+    version: "1.0.0"
+  
+  # HTTP Configuration
+  http:
+    port: 8080
+    host: 0.0.0.0
+    cors:
+      ~: true
+      origins: "*"
+      headers: "*"
+      methods: "*"
+    
+  # Database Configuration
+  datasource:
+    db-kind: postgresql
+    username: ${DATABASE_USERNAME:core_business_user}
+    password: ${DATABASE_PASSWORD:core_business_pass}
+    jdbc:
+      url: ${DATABASE_URL:jdbc:postgresql://localhost:5432/chiro_core_business}
+      max-size: 20
+      min-size: 5
+      initial-size: 5
+      acquisition-timeout: PT30S
+  
+  # Hibernate Configuration
+  hibernate-orm:
+    database:
+      generation: validate # Use Liquibase for schema management
+    log:
+      sql: ${HIBERNATE_SQL_LOG:false}
+      format-sql: true
+    physical-naming-strategy: org.hibernate.boot.model.naming.CamelCaseToUnderscoresNamingStrategy
+    
+  # Liquibase Configuration
+  liquibase:
+    migrate-at-start: true
+    change-log: classpath:db/migration/changelog-master.xml
+    default-schema-name: core_business
+    
+  # Health Check Configuration
+  smallrye-health:
+    root-path: /health
+    
+  # OpenAPI Configuration
+  smallrye-openapi:
+    path: /openapi
+    info-title: "Core Business Service API"
+    info-version: "1.0.0"
+    info-description: "ERP Core Business Operations API - Finance, Inventory, Sales, Manufacturing, Procurement"
+    info-contact-name: "ChiroERP Development Team"
+    
+  # Swagger UI Configuration
+  swagger-ui:
+    always-include: true
+    path: /swagger-ui
+    
+  # REST Configuration
+  rest:
+    path: /api/v1
+    
+  # JSON Configuration
+  rest-client:
+    connect-timeout: 30000
+    read-timeout: 30000
+    
+  # Cache Configuration
+  cache:
+    enabled: true
+    
+# Logging Configuration
+quarkus.log:
+  level: INFO
+  console:
+    enable: true
+    format: "%d{HH:mm:ss} %-5p [%c{2.}] (%t) %s%e%n"
+  file:
+    enable: ${FILE_LOGGING_ENABLED:false}
+    path: ${LOG_FILE_PATH:logs/core-business-service.log}
+    format: "%d{yyyy-MM-dd HH:mm:ss,SSS} %-5p [%c] (%t) %s%e%n"
+    rotation:
+      max-file-size: 50M
+      max-backup-index: 10
+      
+# Module-specific Configuration
+modules:
+  finance:
+    enabled: true
+    base-path: /finance
+    currency:
+      default: USD
+      supported: [USD, EUR, GBP, CAD, AUD]
+    fiscal-year:
+      start-month: 1 # January
+      
+  inventory:
+    enabled: true
+    base-path: /inventory
+    stock-tracking:
+      method: FIFO # FIFO, LIFO, AVERAGE
+    low-stock-threshold: 10
+    
+  sales:
+    enabled: true
+    base-path: /sales
+    order-numbering:
+      prefix: "SO"
+      sequence-start: 100000
+      
+  manufacturing:
+    enabled: true
+    base-path: /manufacturing
+    work-order-numbering:
+      prefix: "WO"
+      sequence-start: 200000
+      
+  procurement:
+    enabled: true
+    base-path: /procurement
+    purchase-order-numbering:
+      prefix: "PO"
+      sequence-start: 300000
+
+# Security Configuration
+mp:
+  jwt:
+    verify:
+      publickey:
+        location: ${JWT_PUBLIC_KEY_LOCATION:classpath:publickey.pem}
+      issuer: ${JWT_ISSUER:https://chiro-erp.com}
+
+# Business Rules Configuration
+business-rules:
+  validation:
+    strict-mode: ${STRICT_VALIDATION:true}
+  
+  finance:
+    multi-currency-enabled: true
+    auto-reconciliation: false
+    tax-calculation: automatic
+    
+  inventory:
+    negative-stock-allowed: false
+    serial-tracking-required: true
+    
+  sales:
+    credit-check-required: true
+    discount-approval-threshold: 10.0
+    
+# Event Sourcing Configuration  
+event-store:
+  enabled: ${EVENT_SOURCING_ENABLED:true}
+  retention-days: 2555 # 7 years for financial compliance
+  
+# Integration Configuration
+integration:
+  external-services:
+    timeout: 30000
+    retry-attempts: 3
+    
+# Performance Configuration
+performance:
+  async-processing: true
+  batch-size: 1000
+  cache-ttl: 3600 # 1 hour

@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.24.xsd">
+    
+    <!-- Core Business Service Database Migration Master Changelog -->
+    
+    <!-- Schema Creation -->
+    <changeSet id="create-schema" author="core-business-service">
+        <sql>CREATE SCHEMA IF NOT EXISTS core_business;</sql>
+        <rollback>DROP SCHEMA IF EXISTS core_business CASCADE;</rollback>
+    </changeSet>
+    
+    <!-- Finance Module Changes -->
+    <include file="finance/001-finance-base-schema.xml" relativeToChangelogFile="true"/>
+    <include file="finance/002-finance-accounts.xml" relativeToChangelogFile="true"/>
+    <include file="finance/003-finance-transactions.xml" relativeToChangelogFile="true"/>
+    
+    <!-- Inventory Module Changes -->
+    <include file="inventory/001-inventory-base-schema.xml" relativeToChangelogFile="true"/>
+    <include file="inventory/002-inventory-products.xml" relativeToChangelogFile="true"/>
+    <include file="inventory/003-inventory-stock.xml" relativeToChangelogFile="true"/>
+    
+    <!-- Sales Module Changes -->
+    <include file="sales/001-sales-base-schema.xml" relativeToChangelogFile="true"/>
+    <include file="sales/002-sales-orders.xml" relativeToChangelogFile="true"/>
+    <include file="sales/003-sales-customers.xml" relativeToChangelogFile="true"/>
+    
+    <!-- Manufacturing Module Changes -->
+    <include file="manufacturing/001-manufacturing-base-schema.xml" relativeToChangelogFile="true"/>
+    <include file="manufacturing/002-manufacturing-bom.xml" relativeToChangelogFile="true"/>
+    <include file="manufacturing/003-manufacturing-work-orders.xml" relativeToChangelogFile="true"/>
+    
+    <!-- Procurement Module Changes -->
+    <include file="procurement/001-procurement-base-schema.xml" relativeToChangelogFile="true"/>
+    <include file="procurement/002-procurement-vendors.xml" relativeToChangelogFile="true"/>
+    <include file="procurement/003-procurement-purchase-orders.xml" relativeToChangelogFile="true"/>
+    
+    <!-- Cross-Module Integration Tables -->
+    <include file="shared/001-audit-tables.xml" relativeToChangelogFile="true"/>
+    <include file="shared/002-event-store.xml" relativeToChangelogFile="true"/>
+    <include file="shared/003-integration-tables.xml" relativeToChangelogFile="true"/>
+    
+</databaseChangeLog>

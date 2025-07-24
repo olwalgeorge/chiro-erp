@@ -23,22 +23,41 @@ dependencies {
     implementation("io.quarkus:quarkus-rest-kotlin-serialization")
     implementation("io.quarkus:quarkus-rest-jackson")
     
-    // Database dependencies (only when JPA entities exist)
-    // implementation("io.quarkus:quarkus-hibernate-reactive-panache-kotlin")
-    // implementation("io.quarkus:quarkus-jdbc-postgresql")
-    // implementation("io.quarkus:quarkus-liquibase")
-    // implementation("io.quarkus:quarkus-hibernate-validator")
+    // Database dependencies
+    implementation("io.quarkus:quarkus-hibernate-reactive-panache-kotlin")
+    implementation("io.quarkus:quarkus-jdbc-postgresql")
+    implementation("io.quarkus:quarkus-liquibase")
+    implementation("io.quarkus:quarkus-hibernate-validator")
     
     // Configuration and observability
     implementation("io.quarkus:quarkus-config-yaml")
     implementation("io.quarkus:quarkus-smallrye-health")
+    implementation("io.quarkus:quarkus-smallrye-openapi")
+    implementation("io.quarkus:quarkus-smallrye-metrics")
+    
+    // Event Messaging for EDA
+    implementation("io.quarkus:quarkus-messaging")
+    implementation("io.quarkus:quarkus-smallrye-reactive-messaging")
+    
+    // Cache for performance
+    implementation("io.quarkus:quarkus-cache")
+    
+    // Security
+    implementation("io.quarkus:quarkus-smallrye-jwt")
+    implementation("io.quarkus:quarkus-security")
     
     // Kotlin stdlib
     implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-reactive")
     
     // Test dependencies
     testImplementation("io.quarkus:quarkus-junit5")
     testImplementation("io.rest-assured:rest-assured")
+    testImplementation("io.quarkus:quarkus-test-h2")
+    testImplementation("org.jetbrains.kotlin:kotlin-test-junit5")
+    testImplementation("org.mockito:mockito-core")
+    testImplementation("org.mockito.kotlin:mockito-kotlin:5.1.0")
 }
 
 group = "org.chiro"

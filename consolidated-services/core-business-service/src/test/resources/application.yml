@@ -1,0 +1,48 @@
+# Test Configuration for Core Business Service
+# H2 in-memory database for fast testing
+
+quarkus:
+  # Test Database Configuration
+  datasource:
+    db-kind: h2
+    username: sa
+    password: 
+    jdbc:
+      url: jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+      
+  # Hibernate Configuration for Tests
+  hibernate-orm:
+    database:
+      generation: drop-and-create
+    log:
+      sql: true
+      format-sql: true
+      
+  # Liquibase Configuration for Tests
+  liquibase:
+    migrate-at-start: false # Use Hibernate generation for tests
+    
+  # Logging for Tests
+  log:
+    level: DEBUG
+    category:
+      "org.chiro": DEBUG
+      "org.hibernate.SQL": DEBUG
+      
+# Test-specific Configuration
+test:
+  data:
+    cleanup: true
+    seed: true
+    
+modules:
+  finance:
+    test-mode: true
+  inventory:
+    test-mode: true
+  sales:
+    test-mode: true
+  manufacturing:
+    test-mode: true
+  procurement:
+    test-mode: true
